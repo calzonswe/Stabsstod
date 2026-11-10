@@ -24,7 +24,7 @@ function testEnv(overrides: Record<string, string> = {}): Record<string, string>
 
 describe('GET /api/health', () => {
   it('returns ok: true and db: true when Postgres is reachable', async () => {
-    const app = buildApp({ config: loadConfig(testEnv()) });
+    const app = await buildApp({ config: loadConfig(testEnv()) });
     try {
       const res = await app.inject({ method: 'GET', url: '/api/health' });
       expect(res.statusCode).toBe(200);

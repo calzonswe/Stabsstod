@@ -1,9 +1,13 @@
-import { createBrowserRouter, Outlet, RouterProvider, Link } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext.js';
+import Login from './pages/Login.js';
+import ChangePassword from './pages/ChangePassword.js';
 
 function Layout() {
   const { t, i18n } = useTranslation();
+  const { user, logout } = useAuth();
   const switchLang = () => i18n.changeLanguage(i18n.language === 'sv' ? 'en' : 'sv');
 
   return (
@@ -14,6 +18,19 @@ function Layout() {
             {t('app.name')}
           </Link>
           <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <span className="text-sm text-slate-600">{user.username}</span>
+                <button
+                  onClick={() => {
+                    void logout();
+                  }}
+                  className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+                >
+                  {t('auth.nav.logout')}
+                </button>
+              </>
+            ) : null}
             <button
               onClick={switchLang}
               className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 transition-colors"
@@ -40,18 +57,52 @@ function Home() {
   );
 }
 
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return null;
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.mustChangePassword) {
+    return <Navigate to="/change-password" replace />;
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
   const router = useMemo(
     () =>
       createBrowserRouter([
         {
+          path: '/login',
+          element: <Login />,
+        },
+        {
+          path: '/change-password',
+          element: (
+            <RequireAuth>
+              <ChangePassword />
+            </RequireAuth>
+          ),
+        },
+        {
           path: '/',
-          element: <Layout />,
+          element: (
+            <RequireAuth>
+              <Layout />
+            </RequireAuth>
+          ),
           children: [{ index: true, element: <Home /> }],
         },
       ]),
     [],
   );
 
-  return <RouterProvider router={router} />;
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }

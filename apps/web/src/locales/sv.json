@@ -7,5 +7,18 @@
   "lang.current": "Svenska",
   "lang.switch": "Växla till engelska",
   "home.title": "Välkommen",
-  "home.subtitle": "Stabsstöd — offline-först stöd för kris- och lägesarbete"
+  "home.subtitle": "Stabsstöd — offline-först stöd för kris- och lägesarbete",
+  "auth.login.username": "Användarnamn",
+  "auth.login.password": "Lösenord",
+  "auth.login.signIn": "Logga in",
+  "auth.login.signingIn": "Loggar in...",
+  "auth.login.failed": "Felaktigt användarnamn eller lösenord",
+  "auth.changePassword.title": "Byt lösenord",
+  "auth.changePassword.for": "För {user}",
+  "auth.changePassword.current": "Nuvarande lösenord",
+  "auth.changePassword.new": "Nytt lösenord",
+  "auth.changePassword.update": "Byt lösenord",
+  "auth.changePassword.updating": "Uppdaterar...",
+  "auth.changePassword.failed": "Kunde inte byta lösenord",
+  "auth.nav.logout": "Logga ut"
 }

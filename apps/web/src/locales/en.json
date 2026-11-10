@@ -7,5 +7,18 @@
   "lang.current": "English",
   "lang.switch": "Switch to Swedish",
   "home.title": "Welcome",
-  "home.subtitle": "Stabsstöd — offline-first support for crisis and situation work"
+  "home.subtitle": "Stabsstöd — offline-first support for crisis and situation work",
+  "auth.login.username": "Username",
+  "auth.login.password": "Password",
+  "auth.login.signIn": "Sign in",
+  "auth.login.signingIn": "Signing in...",
+  "auth.login.failed": "Invalid username or password",
+  "auth.changePassword.title": "Change password",
+  "auth.changePassword.for": "For {user}",
+  "auth.changePassword.current": "Current password",
+  "auth.changePassword.new": "New password",
+  "auth.changePassword.update": "Change password",
+  "auth.changePassword.updating": "Updating...",
+  "auth.changePassword.failed": "Failed to change password",
+  "auth.nav.logout": "Log out"
 }

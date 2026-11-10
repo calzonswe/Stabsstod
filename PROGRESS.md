@@ -195,7 +195,58 @@ now contains only the app and its required dependencies:
 - `packages/shared` needed `zod` added as a dependency (pnpm add, real version in
   lockfile).
 
-**Left over:** none for M4. Next: M5 — Authentication (argon2, login/logout/me/
-change-password endpoints, admin bootstrap, rate limiting, auth_events; web login
-page + auth context + protected routes).
+**Left over:** none for M5. Next: M6 — User administration (list/create/disable
+users, reset password, display name, preferred language, GET/PUT /api/settings).
+
+## M5 — Authentication — done (2026-11-10)
+
+**Done — API (apps/api):**
+- `apps/api/src/auth.ts`: `registerAuth(app, config, pool)` registers
+  `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`,
+  `POST /api/auth/change-password`.
+- Password hashing with `@node-rs/argon2` (hash on write, `verify` on read).
+- Session cookie `session` = random token; only its SHA-256 hash is stored in
+  `sessions` (raw token never persisted); httpOnly, SameSite=Lax, 30-day
+  sliding expiry, Secure in production. Sessions refreshed on each `me` call.
+- Admin bootstrap in `apps/api/src/index.ts`: on first start, if `users` is
+  empty, creates the admin from `ADMIN_USERNAME`/`ADMIN_PASSWORD` with
+  `mustChangePassword = true`.
+- Login rate limiting: max 5 failed attempts per IP+username per minute
+  (in-memory sliding window, failed attempts only consume the budget);
+  every attempt written to `auth_events`.
+- `apps/api/src/db/schema.ts`: added `password_hash` to `users`.
+- `drizzle/0002_m5_auth.sql`: `ALTER TABLE users ADD COLUMN IF NOT EXISTS
+  password_hash text` (idempotent).
+- `apps/api/src/migrate.ts`: applies all `drizzle/*.sql` under a pg advisory
+  lock at startup (idempotent `__meta` tracking table).
+- `apps/api/src/app.ts`: registers `@fastify/cookie`, serves the built web app
+  (`fastify-static` at `/assets` + SPA fallback `/*` → index.html), wires auth.
+- `apps/api/Dockerfile`: single-stage build — installs workspace deps, builds
+  `apps/web` into `apps/web/dist`, runs migrations then starts the api.
+- `apps/api/src/auth.test.ts`: Vitest tests against a real Postgres —
+  login (correct/wrong/unknown user), rate-limit (5 failures then 429),
+  me (no cookie / valid session / invalid session), change-password
+  (wrong current / success / no cookie), logout.
+
+**Done — Web (apps/web):**
+- `apps/web/src/contexts/AuthContext.tsx`: `AuthProvider` + `useAuth` —
+  `user`, `loading`, `login`, `logout`, `changePassword`, `isAuthenticated`;
+  fetches `/api/auth/me` with `credentials: 'include'` on mount.
+- `apps/web/src/pages/Login.tsx`: login form, redirects to `/` on success,
+  redirects already-authed users to `/`.
+- `apps/web/src/pages/ChangePassword.tsx`: change-password form.
+- `apps/web/src/App.tsx`: `AuthProvider` wrapping the router, `/login` and
+  `/change-password` routes, `RequireAuth` wrapper (redirects unauthenticated
+  to `/login`, `mustChangePassword` users to `/change-password`), header shows
+  username + logout when authed.
+- `apps/web/src/locales/{sv,en}.json`: auth strings added to both (parity test
+  passes).
+- `apps/web/src/App.test.tsx`: fetch stubbed so the app renders authenticated;
+  language-switch tests pass.
+
+**Verified end-to-end:** `docker compose up --build` (db + api only), smoke
+script passes, `GET /api/health` → `{"ok":true,"db":true}`, manual login via
+curl sets the `session` cookie (HttpOnly/SameSite=Lax/Secure/30-day) and
+`/api/auth/me` returns the user.
+
 
