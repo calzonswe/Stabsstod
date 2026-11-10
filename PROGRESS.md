@@ -31,5 +31,32 @@ anything left over. Newest milestone last.
 - All three gates pass on the empty packages: `pnpm -r typecheck`, `pnpm -r lint`,
   `pnpm -r test`; `pnpm format` is idempotent.
 
-**Left over:** none. (Fastify app factory = M1, Vite/React web = M2,
-compose + Caddy + smoke script = M3.)
+## M1 — API skeleton — done (2026-11-10)
+
+**Done:**
+- `apps/api/src/config.ts`: zod config loader (`loadConfig(env?)`) covering all plan §8 vars
+  (`SITE_ADDRESS`, `POSTGRES_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SESSION_SECRET`,
+  `MAX_UPLOAD_MB`, `TZ`) plus `PORT`, `HOST`, `NODE_ENV`, `DATABASE_URL`. No caching so it's
+  directly testable with an env override.
+- `apps/api/src/app.ts`: Fastify 5 app factory `buildApp(opts?)` returning the app instance;
+  owns a `pg` Pool (injectable for tests); `GET /api/health` returns `{ok:true, db:true|false}`;
+  closes the pool on `onClose` only when it owns it.
+- `apps/api/drizzle.config.ts` + `src/db/schema.ts` (stub): drizzle-kit configured (pg driver),
+  real schema arrives in M4.
+- `apps/api/src/index.ts`: entry point (dotenv + loadConfig + buildApp + listen).
+- `apps/api/Dockerfile`: node:22-alpine, corepack, pnpm install from root lockfile, `CMD ["pnpm", "--filter", "@stabsstod/api", "start"]`.
+- `docker-compose.yml`: `db` service (postgres:16, `pgdata` volume, healthcheck, port 5432).
+- `apps/api/src/app.test.ts`: Vitest inject test for `GET /api/health` against a real Postgres.
+- `start` script added to apps/api package.json (`tsx src/index.ts`).
+
+**Learned:**
+- pnpm 12 ignores build scripts by default (`ERR_PNPM_IGNORED_BUILDS` for esbuild postinstalls
+  pulled in by drizzle-kit/tsx). `pnpm approve-builds --all` records the approvals in `.npmrc`;
+  afterwards `pnpm add` works normally.
+- `pg@8.23` ships no TS types → added `@types/pg`; added `@types/node` for `process`.
+- `verbatimModuleSyntax` requires type-only imports (`import type { FastifyInstance }`).
+- Root `.prettierignore` now ignores `**/Dockerfile` (prettier has no Dockerfile parser).
+
+**Left over:** none for M1. M3 expands docker-compose.yml (adds `api` + `caddy`,
+volumes, healthchecks) and makes the api Dockerfile production-ready (migrations at start under
+an advisory lock).
