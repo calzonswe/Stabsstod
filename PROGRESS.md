@@ -60,3 +60,38 @@ anything left over. Newest milestone last.
 **Left over:** none for M1. M3 expands docker-compose.yml (adds `api` + `caddy`,
 volumes, healthchecks) and makes the api Dockerfile production-ready (migrations at start under
 an advisory lock).
+
+## M2 — Web skeleton — done (2026-11-10)
+
+**Done:**
+- `apps/web/vite.config.ts`: Vite 8 with `@tailwindcss/vite` + `@vitejs/plugin-react`,
+  Vitest with jsdom environment and jest-dom matchers.
+- `apps/web/index.html`, `apps/web/src/main.tsx`: entry points.
+- `apps/web/src/index.css`: `@import 'tailwindcss'` + `@import '@fontsource-variable/inter'`
+  (locally bundled Inter font, no Google Fonts), `@theme --font-sans`.
+- `apps/web/src/App.tsx`: React Router 7 layout shell — header (app name, language switch
+  button), main outlet, empty `Home` route at `/`. `createBrowserRouter` built with `useMemo`.
+- `apps/web/src/i18n.ts`: i18next + react-i18next, resources from `sv.json`/`en.json`,
+  default `lng: 'sv'`, fallback `'sv'`.
+- `apps/web/src/locales/sv.json` / `en.json`: 8 shared keys (app name, nav, language,
+  home title/subtitle).
+- `apps/web/src/i18n.test.ts`: parity test — sv/en key sets match, all values non-empty.
+- `apps/web/src/App.test.tsx`: renders Swedish by default; clicking the language switch
+  shows English text.
+- `apps/web/package.json`: added `build` script (`vite build`).
+
+**Learned:**
+- Tailwind v4 uses CSS-first config: `@import 'tailwindcss'` + `@theme` in CSS, not
+  `tailwind.config.js`. JS-style `import` in CSS fails; must use CSS `@import`.
+- TS 5.9 with `module: NodeNext` requires `with { type: 'json' }` (import attributes,
+  not `assert`) for JSON imports.
+- TS 5.9 + `moduleResolution: NodeNext` requires `.js` extensions for `.ts`/`.tsx`
+  imports (`import App from './App.js'`).
+- Vitest prefers `vitest.config.ts` over `vite.config.ts`; removed the M0 `vitest.config.ts`
+  stub so the jsdom environment in `vite.config.ts` takes effect.
+- React Router v7 `createBrowserRouter` at module scope needs `document` (jsdom env);
+  test renders pass with `--environment jsdom` from `vite.config.ts`.
+- Build output bundles Inter font as WOFF2 assets (self-hosted, no Google Fonts).
+
+**Left over:** none for M2. Next: M3 (compose + Caddy — add `api` + `caddy` services to
+docker-compose.yml, Caddyfile with internal TLS, smoke script).

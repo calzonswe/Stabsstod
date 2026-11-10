@@ -1,0 +1,11 @@
+{
+  "app.name": "Stabsstöd",
+  "app.tagline": "Support for crisis and situation work",
+  "nav.home": "Home",
+  "nav.incident": "Incident",
+  "lang.label": "Language",
+  "lang.current": "English",
+  "lang.switch": "Switch to Swedish",
+  "home.title": "Welcome",
+  "home.subtitle": "Stabsstöd — offline-first support for crisis and situation work"
+}
