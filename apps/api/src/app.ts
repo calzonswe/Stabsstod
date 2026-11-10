@@ -10,6 +10,7 @@ import { loadConfig, type Env } from './config.js';
 import { registerAuth } from './auth.js';
 import { registerAdmin } from './admin.js';
 import { registerIncidents } from './incidents.js';
+import { registerSync } from './sync.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url)); // /app/apps/api/src
 const WEB_DIST = __dirname + '/../../web/dist'; // /app/apps/web/dist
@@ -50,6 +51,7 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   registerAuth(app, config, pool);
   registerAdmin(app, pool);
   registerIncidents(app, pool);
+  registerSync(app, pool);
 
   // SPA: serve index.html for the root and any client-side route that isn't
   // an API route or a static asset. API routes (/api/*) registered above take
