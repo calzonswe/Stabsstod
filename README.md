@@ -5,19 +5,18 @@ Self-hosted, offline-first support system for an incident management staff ("sta
 The specification is [plan.md](plan.md); it is the source of truth. Progress is tracked in
 [PROGRESS.md](PROGRESS.md); open owner questions live in [QUESTIONS.md](QUESTIONS.md).
 
-Status: M3 scaffold complete.
+Status: M3 scaffold complete (no reverse proxy — the organisation provides its own).
 
 ## Run it
+
+The organisation is expected to run its own reverse proxy in front of the api
+(forwarding to `api:3000` internally, or to `127.0.0.1:3000` when run locally).
 
 1. Copy `.env.example` to `.env` and adjust values (especially passwords and
    `SESSION_SECRET`).
 2. Start the stack: `docker compose up --build`
-3. Open https://localhost/ (the internal self-signed CA is used — accept the
-   warning, or install the CA).
+3. The api is reachable at http://localhost:3000 (published on loopback only).
 4. Run the smoke test: `./scripts/smoke.sh`
 
-The Caddy instance uses `tls internal`, so it issues its own CA. The CA
-certificate lives in the `caddy_data` volume at
-`/data/caddy/authority/local/root.crt` inside the caddy container. Export it and
-install it on your client device to avoid browser warnings, or add a permanent
-trust for `localhost`. An in-app CA diagnostic is planned for the PWA milestone.
+The api runs database migrations at start under a Postgres advisory lock, so only
+one instance migrates at a time.

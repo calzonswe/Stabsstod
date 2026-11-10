@@ -134,9 +134,27 @@ docker-compose.yml, Caddyfile with internal TLS, smoke script).
   (npm cmd-shim calling node bin.cjs) is unreliable from Node; pure-pg migration
   avoids the issue entirely.
 
-**Left over:** none for M3. Next: M4 (core schema and append-only table — real
-RecordEnvelope entity schemas, drizzle schema replacing the stub, Postgres triggers
-rejecting UPDATE/DELETE on records).
+## M3 — Compose and Caddy — revised (2026-11-10)
+
+**Change:** Removed the Caddy reverse proxy per organisational requirement — the
+organisation runs its own reverse proxy in front of the api. `docker-compose.yml`
+now contains only the app and its required dependencies:
+
+- `db` (postgres:16, pgdata volume, healthcheck, port 5432 on loopback)
+- `api` (builds from apps/api/Dockerfile, runs migrations at start under a pg
+  advisory lock, healthcheck, port 3000 on loopback)
+- Volumes: pgdata, attachments. All configuration through `.env`
+  (SITE_ADDRESS, TZ, POSTGRES_PASSWORD, POSTGRES_DB, ADMIN_USERNAME,
+  ADMIN_PASSWORD, SESSION_SECRET, MAX_UPLOAD_MB).
+- `scripts/smoke.sh`: curls `http://127.0.0.1:3000/api/health` (no HTTPS, no
+  Caddy).
+- `deploy/caddy/` directory removed.
+- README "Run it" section updated: organisation provides its own reverse proxy
+  forwarding to `api:3000`.
+
+**Verified:** `docker compose up --build` brings up db + api, both healthy;
+`scripts/smoke.sh` passes; `GET http://127.0.0.1:3000/api/health` returns
+`{"ok":true,"db":true}`.
 
 ## M4 — Core schema and append-only table — done (2026-11-10)
 

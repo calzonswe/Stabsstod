@@ -20,6 +20,9 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-stabsstod}@db:5432/${POSTGRES_DB:-stabsstod}
+      NODE_ENV: production
+      PORT: '3000'
+      HOST: '0.0.0.0'
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
       TZ: ${TZ:-Europe/Stockholm}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stabsstod}
@@ -27,7 +30,6 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-stabsstod}
       SESSION_SECRET: ${SESSION_SECRET:-change-me-long-random-string}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
-      NODE_ENV: production
     depends_on:
       db:
         condition: service_healthy
@@ -43,24 +45,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-
-  caddy:
-    build:
-      context: .
-      dockerfile: deploy/caddy/Dockerfile
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
     ports:
-      - '443:443'
-      - '80:80'
-    volumes:
-      - ./data/maps:/srv/maps:ro
-      - caddy_data:/data
-    depends_on:
-      api:
-        condition: service_healthy
+      - '127.0.0.1:3000:3000'
 
 volumes:
   pgdata:
   attachments:
-  caddy_data:
