@@ -4,6 +4,9 @@ import { useMemo } from 'react';
 import { AuthProvider, useAuth, RequireAdmin } from './contexts/AuthContext.js';
 import Login from './pages/Login.js';
 import ChangePassword from './pages/ChangePassword.js';
+import Incidents from './pages/Incidents.js';
+import CreateIncident from './pages/CreateIncident.js';
+import IncidentDetail from './pages/IncidentDetail.js';
 import Users from './pages/Users.js';
 import Settings from './pages/Settings.js';
 
@@ -52,6 +55,16 @@ function Layout() {
                     }`}
                   >
                     {t('nav.settings')}
+                  </Link>
+                  <Link
+                    to="/incidents"
+                    className={`text-sm ${
+                      window.location.pathname === '/incidents'
+                        ? 'text-indigo-600 font-medium'
+                        : 'text-slate-600 hover:text-indigo-600'
+                    }`}
+                  >
+                    {t('nav.incidents')}
                   </Link>
                 </>
               )}
@@ -148,6 +161,30 @@ export default function App() {
                 <RequireAdmin>
                   <Settings />
                 </RequireAdmin>
+              ),
+            },
+            {
+              path: 'incidents',
+              element: (
+                <RequireAuth>
+                  <Incidents />
+                </RequireAuth>
+              ),
+            },
+            {
+              path: 'incidents/create',
+              element: (
+                <RequireAdmin>
+                  <CreateIncident />
+                </RequireAdmin>
+              ),
+            },
+            {
+              path: 'incidents/:id',
+              element: (
+                <RequireAuth>
+                  <IncidentDetail />
+                </RequireAuth>
               ),
             },
           ],

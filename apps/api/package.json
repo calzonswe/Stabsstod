@@ -10,6 +10,7 @@
     "format": "prettier --write src"
   },
   "dependencies": {
+    "@stabsstod/shared": "workspace:*",
     "@fastify/cookie": "^11.1.5",
     "@fastify/static": "^10.1.10",
     "@node-rs/argon2": "^2.2.2",

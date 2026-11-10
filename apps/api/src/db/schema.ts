@@ -38,6 +38,9 @@ export const sessions = pgTable('sessions', {
 export const incidents = pgTable('incidents', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
+  type: text('type'), // e.g. storm, fire, major_accident
+  startedAt: timestamp('started_at', { withTimezone: true }), // incident start time
+  status: text('status').notNull().default('active'), // active | winding_down | closed
   createdBy: text('created_by')
     .notNull()
     .references(() => users.id),

@@ -247,6 +247,52 @@ render for admin, API returns 403 for non-admin on admin endpoints.
 **Left over:** none for M6. Next: M7 — Incidents, members, functions (create
 incident, function presets, members, "My incidents" list).
 
+## M7 — Incidents, members, functions — done (2026-11-10)
+
+**Done — API (apps/api):**
+- `apps/api/src/db/schema.ts`: incidents table extended with `type`, `started_at`,
+  `status` (active|winding_down|closed).
+- `drizzle/0004_m7_incidents.sql`: adds the three columns + status check constraint.
+- `apps/api/src/incidents.ts`: `registerIncidents(app, pool)` registers:
+  - `GET /api/presets` — small (4), medium (6), continental (9) with function counts
+  - `POST /api/incidents` — admin only: create incident, copy preset into
+    `staff_functions`, auto-add creator as chief_of_staff, add optional members
+  - `GET /api/incidents` — auth required: list only incidents user is a member of
+  - `GET /api/incidents/:id` — auth required (member): incident detail + functions + members
+  - `POST /api/incidents/:id/members` — admin only: add member with role + functions
+  - `PATCH /api/incidents/:id/functions/:functionId` — chief/deputy/admin: rename function
+  - `PATCH /api/incidents/:id/members/:userId` — admin only: update role + functions
+- `apps/api/src/app.ts`: wires `registerIncidents`.
+- `apps/api/src/incidents.test.ts`: Vitest tests against real Postgres — presets
+  endpoint, incident creation with each preset (verifies staff_functions count),
+  non-admin rejection (403), member-only incident listing, incident detail access
+  control (403 for non-members), function rename (chief/deputy can, regular member
+  gets 403), member add (admin + 403 for non-admin).
+
+**Done — Shared (packages/shared):**
+- `packages/shared/src/presets.ts`: `FUNCTION_PRESETS` (small/medium/continental
+  with function names from MSB handbook), `TEMPLATE_TEXTS` (5 template agenda /
+  question sets in sv + en), `getPreset`, `getTemplate`, type exports.
+- `packages/shared/src/index.ts`: re-exports presets.
+
+**Done — Web (apps/web):**
+- `apps/web/src/pages/Incidents.tsx`: "My incidents" list table with status badges.
+- `apps/web/src/pages/CreateIncident.tsx`: admin create-incident form with preset
+  selection, name, type, status, start time.
+- `apps/web/src/pages/IncidentDetail.tsx`: incident detail with editable function
+  names (chief/deputy/admin), members table, add-member form (chief/deputy/admin).
+- `apps/web/src/App.tsx`: `/incidents`, `/incidents/create`, `/incidents/:id`
+  routes with appropriate auth guards.
+- `apps/web/src/locales/{sv,en}.json`: all incidents strings added to both locales.
+
+**Verified end-to-end:** `docker compose up --build` (db + api only), smoke script
+passes, `/incidents` and `/incidents/create` render for admin, API enforcement of
+403 for non-admin on admin endpoints.
+
+**Left over:** none for M7. Next: M8 — Permission module (`can()` in
+packages/shared with table-driven test).
+
+
 
 ## M5 — Authentication — done (2026-11-10)
 
