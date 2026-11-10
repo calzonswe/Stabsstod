@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { uuidv7 } from 'uuidv7';
+import { hlcTick, type HLCState } from './hlc.js';
 
 // Entity types from plan.md §6 (Entity catalogue) — the source of truth.
 export const EntityType = {
@@ -46,3 +48,37 @@ export const RecordEnvelopeSchema = z.object({
 export type RecordEnvelope = z.infer<typeof RecordEnvelopeSchema>;
 
 export type RetractPayload = { reason: string };
+
+/** Create a new record envelope, advancing the caller's HLC state. */
+export function newRecord(opts: {
+  entityId: string;
+  entityType: EntityType;
+  incidentId: string;
+  parentIds: string[];
+  functionId: string | null;
+  authorId: string;
+  deviceId: string;
+  schemaVersion: number;
+  payload: unknown;
+  createdAtClient: string;
+  kind: 'put' | 'retract';
+  state: HLCState;
+}): { record: RecordEnvelope; state: HLCState } {
+  const { state, hlc } = hlcTick(opts.state, opts.deviceId);
+  const record: RecordEnvelope = {
+    id: uuidv7(),
+    entityId: opts.entityId,
+    entityType: opts.entityType,
+    incidentId: opts.incidentId,
+    parentIds: opts.parentIds,
+    functionId: opts.functionId,
+    authorId: opts.authorId,
+    deviceId: opts.deviceId,
+    hlc,
+    createdAtClient: opts.createdAtClient,
+    kind: opts.kind,
+    schemaVersion: opts.schemaVersion,
+    payload: opts.payload,
+  };
+  return { record, state };
+}

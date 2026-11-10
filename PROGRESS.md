@@ -319,8 +319,38 @@ packages/shared with table-driven test).
 on all three packages. No server/UI wiring yet — M8 is `can()` export only, to be
 consumed by the API (M9+) and client UI (later).
 
-**Left over:** none for M8. Next: M9 — Shared record model — HARD (RecordEnvelope,
-HLC tick/receive, materialize, entity schemas; test-first).
+**Left over:** none for M9. Next: M10 — Server sync endpoints — HARD
+(`POST /api/sync/push`, `GET /api/sync/pull`, `GET /api/events` SSE per §5.3,
+permission checks via `can()`, in-process pub/sub for SSE).
+
+## M9 — Shared record model — HARD — done (2026-11-10)
+
+**Done:**
+- `packages/shared/src/record.ts`: `RecordEnvelope` type + zod schema, `EntityType`
+  (aligned to plan §6 snake_case values), `RetractPayload`, `newRecord()` helper
+  (uuidv7 id + HLC tick).
+- `packages/shared/src/hlc.ts`: Hybrid Logical Clock — `hlcInitialState`, `hlcTick`,
+  `hlcReceive`, `hlcCompare`, `hlcFormat`, `hlcParse`. Format:
+  `<wallClockMs(15 digits)>-<counter(5 digits)>-<deviceId>`. Monotonic even with
+  wrong wall clock.
+- `packages/shared/src/materialize.ts`: `materialize(records)` → `Map<entityId,
+  Materialization>` where each entry has `{ entityId, current, heads, conflict,
+  history, retracted }`. Heads = records not referenced by any parentIds; current =
+  head with greatest hlc (tie-break deviceId); conflict = >1 head; retracted =
+  current.kind === 'retract'. Deterministic regardless of input order.
+- `packages/shared/src/entityRegistry.ts`: entity registry with `log_entry` zod
+  schema; `getEntitySchema`, `validateEntityPayload`.
+- `packages/shared/src/index.ts`: exports all new modules.
+- `packages/shared/src/materialize.test.ts`: 10 tests — linear history, two concurrent
+  heads → conflict, merge record resolves conflict, retract, history ordered by hlc,
+  HLC monotonic with wrong clock (mocked Date.now), HLC compare ordering,
+  shuffled input gives same result as in-order (20 random shuffles).
+
+**Combined with M8 permissions:** 91 shared package tests, all passing.
+
+**Verified:** full quality gate green (typecheck, lint, test, web build, format).
+
+**Left over:** none for M9.
 
 
 
