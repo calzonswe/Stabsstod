@@ -1,0 +1,9 @@
+node_modules
+dist
+data
+coverage
+pnpm-lock.yaml
+plan.md
+AGENTS.md
+PROGRESS.md
+QUESTIONS.md
