@@ -137,3 +137,47 @@ docker-compose.yml, Caddyfile with internal TLS, smoke script).
 **Left over:** none for M3. Next: M4 (core schema and append-only table — real
 RecordEnvelope entity schemas, drizzle schema replacing the stub, Postgres triggers
 rejecting UPDATE/DELETE on records).
+
+## M4 — Core schema and append-only table — done (2026-11-10)
+
+**Done:**
+- `packages/shared/src/record.ts`: `RecordEnvelope` type + zod schema
+  (`RecordEnvelopeSchema`), `EntityType` const/object, `RetractPayload` type.
+  Pure, framework-adjacent (zod only), heavily unit-testable going forward.
+- `packages/shared/src/index.ts`: re-exports record model types/schema.
+- `apps/api/src/db/schema.ts`: full drizzle-orm pg-core schema replacing the M1
+  stub — `users`, `sessions`, `incidents`, `incident_members`, `staff_functions`,
+  `function_members`, `settings`, `auth_events`, `records`. `records` mirrors the
+  envelope (`server_seq` bigserial, `received_at`, indexes on
+  `(incident_id, server_seq)` and `(incident_id, entity_id)`).
+- `drizzle/0001_m4_core_schema.sql`: migration creating all tables + indexes +
+  `reject_records_update` / `reject_records_delete` trigger functions and
+  `records_no_update` / `records_no_delete` triggers (BEFORE UPDATE/DELETE,
+  raise exception). Idempotent (CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE,
+  DROP TRIGGER IF EXISTS).
+- `apps/api/src/migrate.ts` (from M3, now runs against real migration files):
+  applies all `drizzle/*.sql` files under a pg advisory lock at startup; idempotent
+  `__meta` tracking table; closes pg connections before migration. Confirmed running
+  on startup via `docker compose up`.
+- `apps/api/src/db/records.test.ts`: Vitest test against a real Postgres — applies
+  the migration SQL, proves INSERT into `records` works (server_seq assigned) and
+  that UPDATE and DELETE throw (append-only trigger).
+- `drizzle.config.ts` dialect: `postgresql`, `dbCredentials.url`, stub schema at
+  `apps/api/src/db/schema.ts`.
+
+**Learned:**
+- drizzle-kit 0.31 `generate` requires a TTY for schema-conflict prompts (no CI
+  flag), so the migration SQL was written directly. `migrate.ts` applies `.sql`
+  files from `drizzle/` — no drizzle-kit needed at runtime.
+- drizzle-kit 0.31 `driver` param only accepts d1-http/expo/aws-data-api/pglite/
+  durable-sqlite — for plain postgres:// omit `driver`, set `dialect: 'postgresql'`,
+  `dbCredentials.url`.
+- `bigserial(name, { mode: 'number' })` in drizzle pg-core 0.45; `mode: 'number'`
+  keeps JS-side values as numbers.
+- `packages/shared` needed `zod` added as a dependency (pnpm add, real version in
+  lockfile).
+
+**Left over:** none for M4. Next: M5 — Authentication (argon2, login/logout/me/
+change-password endpoints, admin bootstrap, rate limiting, auth_events; web login
+page + auth context + protected routes).
+

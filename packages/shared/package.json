@@ -10,5 +10,8 @@
     "lint": "eslint --config ../../eslint.config.js .",
     "test": "vitest run",
     "format": "prettier --write src"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   }
 }
