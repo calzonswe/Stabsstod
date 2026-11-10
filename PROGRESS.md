@@ -292,6 +292,37 @@ passes, `/incidents` and `/incidents/create` render for admin, API enforcement o
 **Left over:** none for M7. Next: M8 — Permission module (`can()` in
 packages/shared with table-driven test).
 
+## M8 — Permission module — done (2026-11-10)
+
+**Done:**
+- `packages/shared/src/permissions.ts`: pure `can(actor, action, recordOrDraft, context)`
+  implementing plan.md §7:
+  - `read`: any incident member can read any record of that incident.
+  - `write`: default rule = own functionId or chief_of_staff/deputy_chief (any
+    functionId, including null); observers write nothing.
+  - `retract`: record's author or chief_of_staff/deputy_chief.
+  - Type gates override the default: mission (decision_maker/chief/deputy),
+    decision (decision_maker; chief only with mandate=delegated_chief),
+    decision_request (default), timeline_event (chief/deputy any; function_lead
+    own function), task (chief/deputy/function_lead any; others only proposed +
+    own function), briefing/shift/direction/closurePlan (chief/deputy only),
+    briefingReport/handoverNote (default).
+- `packages/shared/src/index.ts`: re-exports `can`, `Actor`, `IncidentRole`,
+  `Action`, `RecordLike`, `CanContext`.
+- `packages/shared/src/permissions.test.ts`: table-driven Vitest matrix covering
+  roles × entity types × own/foreign function × action (write/retract/read) — 81
+  tests, all passing, including mandate edge cases and task proposed-status rule.
+- `record.ts` EntityType aligned to plan.md §6 (snake_case values: log_entry,
+  fact_item, situation_snapshot, briefing_report, closure_plan, etc.).
+
+**Verified:** full quality gate green (typecheck, lint, test, web build, format)
+on all three packages. No server/UI wiring yet — M8 is `can()` export only, to be
+consumed by the API (M9+) and client UI (later).
+
+**Left over:** none for M8. Next: M9 — Shared record model — HARD (RecordEnvelope,
+HLC tick/receive, materialize, entity schemas; test-first).
+
+
 
 
 ## M5 — Authentication — done (2026-11-10)

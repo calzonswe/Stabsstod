@@ -1,23 +1,28 @@
 import { z } from 'zod';
 
+// Entity types from plan.md §6 (Entity catalogue) — the source of truth.
 export const EntityType = {
   attachment: 'attachment',
-  logEntry: 'logEntry',
-  fact: 'fact',
-  assumption: 'assumption',
-  informationNeed: 'informationNeed',
-  situationSnapshot: 'situationSnapshot',
+  logEntry: 'log_entry',
+  factItem: 'fact_item',
+  situationSnapshot: 'situation_snapshot',
   scenario: 'scenario',
   mission: 'mission',
   direction: 'direction',
+  decisionRequest: 'decision_request',
   decision: 'decision',
   task: 'task',
-  timelineEntry: 'timelineEntry',
+  timelineEvent: 'timeline_event',
   briefing: 'briefing',
+  briefingReport: 'briefing_report',
   shift: 'shift',
+  handoverNote: 'handover_note',
   actor: 'actor',
   resource: 'resource',
-  mapFeature: 'mapFeature',
+  mapFeature: 'map_feature',
+  sitrep: 'sitrep',
+  closurePlan: 'closure_plan',
+  evaluation: 'evaluation',
 } as const;
 
 export type EntityType = (typeof EntityType)[keyof typeof EntityType];
