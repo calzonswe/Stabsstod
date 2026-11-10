@@ -8,3 +8,5 @@ AGENTS.md
 PROGRESS.md
 QUESTIONS.md
 **/Dockerfile
+**/*.sh
+deploy/caddy/Caddyfile

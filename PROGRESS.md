@@ -95,3 +95,45 @@ an advisory lock).
 
 **Left over:** none for M2. Next: M3 (compose + Caddy — add `api` + `caddy` services to
 docker-compose.yml, Caddyfile with internal TLS, smoke script).
+
+## M3 — Compose and Caddy — done (2026-11-10)
+
+**Done:**
+- `docker-compose.yml`: full stack — `db` (postgres:16, pgdata volume, healthcheck),
+  `api` (builds from apps/api/Dockerfile, depends on db healthy, healthcheck),
+  `caddy` (builds from deploy/caddy/Dockerfile, depends on api healthy, maps volume).
+  Volumes: pgdata, attachments, caddy_data. All config via .env (SITE_ADDRESS,
+  POSTGRES_PASSWORD, ADMIN_USERNAME, ADMIN_PASSWORD, SESSION_SECRET, MAX_UPLOAD_MB, TZ).
+- `deploy/caddy/Dockerfile`: multi-stage — Node stage builds apps/web (Vite build),
+  Caddy stage copies dist to /srv/web + Caddyfile to /etc/caddy/Caddyfile.
+- `deploy/caddy/Caddyfile`: per plan §8 — tls internal, encode, security headers,
+  /api/* + /api/events* reverse_proxy to api:3000 (SSE flush_interval -1), /tiles/* and
+  /map-assets/* file_server from /srv/maps, SPA fallback to /srv/web.
+- `apps/api/src/migrate.ts`: runs migrations at start under a pg advisory lock
+  (pg_advisory_lock), reads SQL from /app/drizzle, tracks applied migrations in a
+  __meta table (idempotent), closes pg connections before spawning anything else.
+- `apps/api/Dockerfile`: CMD runs `tsx src/migrate.ts` then `pnpm start`; copies
+  drizzle.config.ts + drizzle/ into the image.
+- `drizzle.config.ts`: moved to repo root (dialect: postgresql, stub schema at
+  apps/api/src/db/schema.ts).
+- `drizzle/0000_init.sql`: generated stub migration (CREATE TABLE __m1_stub).
+- `scripts/smoke.sh`: `curl -sk https://localhost/api/health` + `curl -sk https://localhost/`.
+- README: "Run it" section (copy .env.example, docker compose up --build, smoke script,
+  trust Caddy internal CA).
+- `.gitignore`: ignores drizzle/meta/ (drizzle-kit cache). `.prettierignore`: ignores
+  Caddyfile + Dockerfiles.
+
+**Learned:**
+- drizzle-kit 0.31's `driver` param only accepts d1-http/expo/aws-data-api/pglite/
+  durable-sqlite — for plain postgres://, omit `driver` and set `dialect: 'postgresql'`,
+  with `dbCredentials.url`.
+- drizzle-kit's `migrate` CLI exits 1 silently when spawned from Node's
+  child_process (works fine directly in a shell). Switched to running migration SQL
+  directly via pg Pool under an advisory lock — simpler and more reliable.
+- execSync with stdio: 'inherit' works for trivial commands but drizzle-kit's binary
+  (npm cmd-shim calling node bin.cjs) is unreliable from Node; pure-pg migration
+  avoids the issue entirely.
+
+**Left over:** none for M3. Next: M4 (core schema and append-only table — real
+RecordEnvelope entity schemas, drizzle schema replacing the stub, Postgres triggers
+rejecting UPDATE/DELETE on records).

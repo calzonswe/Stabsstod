@@ -7,3 +7,4 @@ data/
 .DS_Store
 playwright-report/
 test-results/
+drizzle/meta/
