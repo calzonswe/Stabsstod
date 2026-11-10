@@ -198,6 +198,56 @@ now contains only the app and its required dependencies:
 **Left over:** none for M5. Next: M6 — User administration (list/create/disable
 users, reset password, display name, preferred language, GET/PUT /api/settings).
 
+## M6 — User administration — done (2026-11-10)
+
+**Done — API (apps/api):**
+- `apps/api/src/admin.ts`: `registerAdmin(app, pool)` registers admin routes, all
+  guarded by `requireAdmin` (returns 401 if unauthenticated, 403 if non-admin):
+  - `GET /api/admin/users` — list all users (id, username, display_name, role,
+    disabled, preferred_language, must_change_password, created_at)
+  - `POST /api/admin/users` — create user (username, password, displayName,
+    role)
+  - `PATCH /api/admin/users/:id/disable` — disable/enable a user
+  - `POST /api/admin/users/:id/reset-password` — generates a temporary password
+    and sets must_change_password = true; returns the temp password
+  - `PATCH /api/admin/users/:id` — update displayName, role, preferredLanguage
+  - `GET /api/settings` — timezone, map.onlineTileUrl, maxUploadMB
+  - `PUT /api/settings` — upsert settings
+- `apps/api/src/db/schema.ts`: added `disabled` (boolean, default false) and
+  `preferred_language` (text, default 'sv') to users.
+- `drizzle/0003_m6_user_admin.sql`: adds the two columns + seeds default system
+  settings (timezone, map.onlineTileUrl, maxUploadMB).
+- `apps/api/src/auth.ts`: login rejects disabled users; `sessionId` exported for
+  reuse by admin middleware.
+- `apps/api/src/admin.test.ts`: Vitest tests against a real Postgres — list
+  (admin 200 / non-admin 403 / no session 401), create (admin 201 / non-admin
+  403 / duplicate 409), disable (admin + verify disabled user can't log in),
+  reset-password (admin returns temp password that works), update (admin +
+  verify changes persisted), settings GET/PUT (admin + non-admin 403).
+- Migrations serialized across test files with a pg advisory lock to avoid
+  deadlocks; unique usernames per test run.
+
+**Done — Web (apps/web):**
+- `apps/web/src/contexts/AuthContext.tsx`: added `RequireAdmin` component
+  (renders 403 page when not authenticated or non-admin).
+- `apps/web/src/pages/Users.tsx`: users list table (username, display name,
+  role, status, actions), inline create-user form, per-user disable toggle,
+  per-user reset-password (shows temp password in alert).
+- `apps/web/src/pages/Settings.tsx`: settings form (timezone, onlineTileUrl,
+  maxUploadMB) with current-values display.
+- `apps/web/src/App.tsx`: `/users` and `/settings` routes (RequireAdmin +
+  RequireAuth), admin-only nav links (Users, Settings).
+- `apps/web/src/locales/{sv,en}.json`: all new users/settings strings added to
+  both locales (parity test passes).
+
+**Verified end-to-end:** `docker compose up --build` (db + api only), smoke
+script passes, `/api/health` → `{"ok":true,"db":true}`, `/users` and `/settings`
+render for admin, API returns 403 for non-admin on admin endpoints.
+
+**Left over:** none for M6. Next: M7 — Incidents, members, functions (create
+incident, function presets, members, "My incidents" list).
+
+
 ## M5 — Authentication — done (2026-11-10)
 
 **Done — API (apps/api):**

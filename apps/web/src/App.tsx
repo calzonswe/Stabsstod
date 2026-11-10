@@ -1,9 +1,11 @@
 import { createBrowserRouter, Navigate, Outlet, RouterProvider, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext.js';
+import { AuthProvider, useAuth, RequireAdmin } from './contexts/AuthContext.js';
 import Login from './pages/Login.js';
 import ChangePassword from './pages/ChangePassword.js';
+import Users from './pages/Users.js';
+import Settings from './pages/Settings.js';
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -18,9 +20,45 @@ function Layout() {
             {t('app.name')}
           </Link>
           <div className="flex items-center gap-2">
+            <nav className="hidden md:flex items-center gap-4">
+              <Link
+                to="/"
+                className={`text-sm ${
+                  window.location.pathname === '/'
+                    ? 'text-indigo-600 font-medium'
+                    : 'text-slate-600 hover:text-indigo-600'
+                }`}
+              >
+                {t('nav.home')}
+              </Link>
+              {user?.role === 'admin' && (
+                <>
+                  <Link
+                    to="/users"
+                    className={`text-sm ${
+                      window.location.pathname === '/users'
+                        ? 'text-indigo-600 font-medium'
+                        : 'text-slate-600 hover:text-indigo-600'
+                    }`}
+                  >
+                    {t('nav.users')}
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className={`text-sm ${
+                      window.location.pathname === '/settings'
+                        ? 'text-indigo-600 font-medium'
+                        : 'text-slate-600 hover:text-indigo-600'
+                    }`}
+                  >
+                    {t('nav.settings')}
+                  </Link>
+                </>
+              )}
+            </nav>
             {user ? (
               <>
-                <span className="text-sm text-slate-600">{user.username}</span>
+                <span className="hidden md:block text-sm text-slate-600">{user.username}</span>
                 <button
                   onClick={() => {
                     void logout();
@@ -94,7 +132,25 @@ export default function App() {
               <Layout />
             </RequireAuth>
           ),
-          children: [{ index: true, element: <Home /> }],
+          children: [
+            { index: true, element: <Home /> },
+            {
+              path: 'users',
+              element: (
+                <RequireAdmin>
+                  <Users />
+                </RequireAdmin>
+              ),
+            },
+            {
+              path: 'settings',
+              element: (
+                <RequireAdmin>
+                  <Settings />
+                </RequireAdmin>
+              ),
+            },
+          ],
         },
       ]),
     [],

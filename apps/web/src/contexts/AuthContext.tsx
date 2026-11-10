@@ -95,3 +95,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+export function RequireAdmin({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return null;
+  }
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="max-w-md mx-auto py-20 text-center">
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">403 — Forbidden</h1>
+        <p className="text-slate-600">Administrator access is required for this page.</p>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}

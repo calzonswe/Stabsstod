@@ -17,6 +17,8 @@ function sessionId(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+export { sessionId };
+
 function sessionCookieOptions(secure: boolean) {
   return {
     path: '/',
@@ -46,13 +48,13 @@ export function registerAuth(app: FastifyInstance, config: { NODE_ENV: string },
     }
 
     const { rows } = await pool.query(
-      'SELECT id, username, password_hash, role, must_change_password FROM users WHERE username = $1',
+      'SELECT id, username, password_hash, role, must_change_password, disabled FROM users WHERE username = $1',
       [username],
     );
     const user = rows[0];
 
     let ok = false;
-    if (user && user.password_hash) {
+    if (user && user.password_hash && !user.disabled) {
       ok = await verify(user.password_hash, password);
     }
 

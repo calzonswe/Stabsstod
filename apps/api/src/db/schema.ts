@@ -20,6 +20,8 @@ export const users = pgTable('users', {
   displayName: text('display_name'),
   role: text('role').notNull().default('user'), // 'admin' | 'user'
   mustChangePassword: boolean('must_change_password').notNull().default(false),
+  disabled: boolean('disabled').notNull().default(false),
+  preferredLanguage: text('preferred_language').notNull().default('sv'),
   passwordHash: text('password_hash'), // argon2 hash, set at creation / change-password
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

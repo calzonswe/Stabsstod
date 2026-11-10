@@ -19,8 +19,14 @@ async function applyMigrations(pool: Pool) {
     .sort();
   const client = await pool.connect();
   try {
-    for (const file of files) {
-      await client.query(readFileSync(join(MIGRATIONS_DIR, file), 'utf8'));
+    // Serialize DDL across test files to avoid deadlocks on concurrent migrations.
+    await client.query('SELECT pg_advisory_lock($1)', [0x534f4444]);
+    try {
+      for (const file of files) {
+        await client.query(readFileSync(join(MIGRATIONS_DIR, file), 'utf8'));
+      }
+    } finally {
+      await client.query('SELECT pg_advisory_unlock($1)', [0x534f4444]);
     }
   } finally {
     client.release();
