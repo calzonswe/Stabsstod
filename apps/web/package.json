@@ -10,7 +10,10 @@
     "format": "prettier --write src"
   },
   "dependencies": {
+    "@stabsstod/shared": "workspace:*",
     "autoprefixer": "^10.6.2",
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
     "i18next": "^27.0.1",
     "postcss": "^8.5.32",
     "react": "^19.3.1",
@@ -27,6 +30,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "fake-indexeddb": "^6.2.8",
     "jsdom": "^31.0.0",
     "typescript": "^5.9.3",
     "vite": "^8.3.7",
