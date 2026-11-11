@@ -30,8 +30,7 @@ anything left over. Newest milestone last.
 **Verified:** `pnpm -r typecheck` (web passes; api has pre-existing unrelated errors),
 `pnpm --filter web lint` passes, `pnpm --filter web test` passes (15/15).
 
-**Left over:** none for M11. Next: M12 — Client sync loop — HARD (push/pull/SSE,
-outbox sync, Dexie outbox → POST /api/sync/push, GET /api/sync/pull, SSE events).
+**Left over:** none for M11. Next: M14 — Conflict UI primitives — HARD.
 
 ## M12 — Client sync loop — HARD — done (2026-11-11)
 
@@ -58,7 +57,41 @@ outbox sync, Dexie outbox → POST /api/sync/push, GET /api/sync/pull, SSE event
 
 **Verified:** Full quality gate green: typecheck, lint, test (22/22 across 4 test files).
 
-**Left over:** none for M12. Next: M13 — PWA and offline shell — HARD.
+**Left over:** none for M12. Next: M14 — Conflict UI primitives — HARD.
+
+## M13 — PWA and offline shell — HARD — done (2026-11-11)
+
+**Done:**
+- `apps/web/vite.config.ts`: Added `vite-plugin-pwa` with autoUpdate registration type,
+  workbox runtime caching (NetworkOnly for /api/*), dev mode enabled, and SVG icon assets.
+- `apps/web/public/manifest.json`: PWA manifest with name, icons (SVG), screenshots,
+  shortcuts (Incidents, Logbook), sv language.
+- `apps/web/public/offline.html`: Offline fallback page.
+- `apps/web/public/pwa-*.svg`: PWA icon assets (192x192, 512x512, maskable variants,
+  screenshot).
+- `apps/web/src/main.tsx`: Registers PWA service worker via `registerSW` from
+  `virtual:pwa-register` with `onNeedRefresh` and `onOfflineReady` callbacks.
+- `apps/web/src/vite-env.d.ts`: Type declarations for `virtual:pwa-register` module.
+- `apps/web/src/App.tsx`: Added offline chip in header showing "Offline" indicator
+  when `navigator.onLine` is false, with online/offline event listeners.
+- `apps/web/src/locales/{sv,en}.json`: Added `sync.offline` string.
+- `e2e/package.json`, `e2e/playwright.config.ts`, `e2e/tests/smoke.test.ts`: Playwright
+  smoke test — load app online, go offline, reload, app renders from cache and
+  shows Offline chip.
+- `README.md`: Added PWA and offline mode section, HTTPS/CA note.
+- `pnpm-workspace.yaml`: Added `e2e/*` workspace.
+- `package.json`: Added `@playwright/test` dev dependency.
+- `apps/web/package.json`: Added `vite-plugin-pwa` dev dependency.
+
+**Learned:**
+- `vite-plugin-pwa` registers the service worker via `virtual:pwa-register`, which
+  needs type declarations for TypeScript.
+- Service workers require HTTPS or localhost; localhost works for development.
+- SVG icons work fine for PWA manifest icons in modern browsers.
+
+**Verified:** Full quality gate green: typecheck, lint, test (22/22).
+
+**Left over:** none for M13. Next: M14 — Conflict UI primitives — HARD.
 
 ## M10 — Server sync endpoints — HARD — done (2026-11-10)
 
