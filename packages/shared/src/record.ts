@@ -43,6 +43,10 @@ export const RecordEnvelopeSchema = z.object({
   kind: z.enum(['put', 'retract']),
   schemaVersion: z.number().int().positive(),
   payload: z.unknown(),
+  // Server-only fields, added on ingest. Optional so clients can create
+  // envelopes without them; the server assigns serverSeq on push.
+  serverSeq: z.number().int().nonnegative().optional(),
+  receivedAt: z.string().datetime().optional(),
 });
 
 export type RecordEnvelope = z.infer<typeof RecordEnvelopeSchema>;

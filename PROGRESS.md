@@ -33,6 +33,35 @@ anything left over. Newest milestone last.
 **Left over:** none for M11. Next: M12 — Client sync loop — HARD (push/pull/SSE,
 outbox sync, Dexie outbox → POST /api/sync/push, GET /api/sync/pull, SSE events).
 
+## M12 — Client sync loop — HARD — done (2026-11-11)
+
+**Done:**
+- `apps/web/src/syncEngine.ts`: SyncEngine class coordinating push/pull/SSE sync loop.
+  - Push: pending outbox records → POST /api/sync/push (batches of ≤100)
+  - Pull: records since cursor → GET /api/sync/pull (pagination)
+  - SSE: GET /api/events → on 'records' event, trigger pull
+  - Backoff: exponential (1s → 30s) on network errors
+  - Online/offline + visibility-change triggers
+  - Rejected records stay in outbox with reason, shown in "Sync problems"
+  - Sync status: Synced / Syncing / Offline N pending / Problems
+- `apps/web/src/syncEngine.test.ts`: 7 tests covering push, pull, rejected records,
+  offline handling, retry, status listeners, and two-store convergence with fake API.
+- `packages/shared/src/record.ts`: Added optional `serverSeq` and `receivedAt` fields
+  to RecordEnvelopeSchema (server-only fields added on ingest).
+- `apps/web/src/localStore.ts`: Cleaned up remaining debug logging.
+
+**Learned:**
+- `vi.stubGlobal('fetch', ...)` does not reliably intercept `globalThis.fetch` calls
+  from imported modules. Direct assignment `globalThis.fetch = fetchFn` works instead.
+- `globalThis.EventSource` is not available in jsdom; mock with a simple class.
+- Dexie constructor accepts `{ indexedDB }` option to override cached dependencies.
+
+**Verified:** Full quality gate green: typecheck, lint, test (22/22 across 4 test files).
+
+**Left over:** none for M12. Next: M13 — PWA and offline shell — HARD.
+
+## M10 — Server sync endpoints — HARD — done (2026-11-10)
+
 ## M10 — Server sync endpoints — HARD — done (2026-11-10)
 
 **Done:**
