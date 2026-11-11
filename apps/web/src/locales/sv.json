@@ -115,5 +115,18 @@
   "incidents.status.active": "Aktiv",
   "incidents.status.winding_down": "Avveckling",
   "incidents.status.closed": "Avslutad",
-  "incidents.detail.notFound": "Insatsen hittades inte"
+  "incidents.detail.notFound": "Insatsen hittades inte",
+  "incidents.workspace.situation": "Läge",
+  "incidents.workspace.direction": "Inriktning",
+  "incidents.workspace.coordination": "Samordning",
+  "incidents.workspace.log": "Logg",
+  "incidents.workspace.map": "Karta",
+  "incidents.workspace.staff": "Stab",
+  "incidents.workspace.reports": "Rapporter",
+  "incidents.header.myFunction": "Min funktion",
+  "incidents.header.sync": "Synk",
+  "incidents.header.bell": "Klocka",
+  "incidents.header.elapsed": "Löptid",
+  "incidents.placeholder.comingSoon": "Kommer senare",
+  "incidents.placeholder.noWriteAccess": "Du har inte behörighet att skriva här"
 }

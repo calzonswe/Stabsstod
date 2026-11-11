@@ -115,5 +115,18 @@
   "incidents.status.active": "Active",
   "incidents.status.winding_down": "Winding down",
   "incidents.status.closed": "Closed",
-  "incidents.detail.notFound": "Incident not found"
+  "incidents.detail.notFound": "Incident not found",
+  "incidents.workspace.situation": "Situation",
+  "incidents.workspace.direction": "Direction",
+  "incidents.workspace.coordination": "Coordination",
+  "incidents.workspace.log": "Log",
+  "incidents.workspace.map": "Map",
+  "incidents.workspace.staff": "Staff",
+  "incidents.workspace.reports": "Reports",
+  "incidents.header.myFunction": "My function",
+  "incidents.header.sync": "Sync",
+  "incidents.header.bell": "Bell",
+  "incidents.header.elapsed": "Elapsed",
+  "incidents.placeholder.comingSoon": "Coming soon",
+  "incidents.placeholder.noWriteAccess": "You do not have write access here"
 }

@@ -121,9 +121,35 @@ anything left over. Newest milestone last.
 
 **Verified:** Full quality gate green: typecheck, lint, test (30/30 across 6 test files).
 
-**Left over:** none for M14. Next: M15 — Incident workspace shell — HARD.
+**Left over:** none for M14. Next: M15 — Incident workspace shell — HARD (done below).
 
-## M10 — Server sync endpoints — HARD — done (2026-11-10)
+## M15 — Incident workspace shell — HARD — done (2026-11-11)
+
+**Done:**
+- `apps/web/src/pages/IncidentDetail.tsx`: Rewritten as incident workspace shell with navigation tabs:
+  Läge (Situation), Inriktning (Direction), Samordning (Coordination), Logg (Logbook),
+  Karta (Map), Stab (Staff), Rapporter (Reports). Each tab shows placeholder content
+  for later milestones.
+- Header shows incident name, status badge, elapsed time, my function, sync chip,
+  bell placeholder.
+- Role-aware permissions using `can()` from `@stabs/shared`: write access checks for
+  log_entry, mission, task, briefing entity types. Chief/deputy/admin can write
+  function names. Observer sees no write buttons.
+- `apps/web/src/locales/{sv,en}.json`: Added workspace navigation, header, and
+  placeholder strings. i18n parity test passes.
+
+**Learned:**
+- `EntityType` is exported as `type` only from `@stabs/shared` (the const object is
+  shadowed by the type export), so string literals must be used for entity type
+  values in `can()` calls.
+- `useParams<{ id: string }>()` returns `string | undefined` for route params;
+  need `!` assertion or null check before using in `can()` calls.
+
+**Verified:** Full quality gate green: typecheck, lint, test (30/30 across 6 test files).
+
+**Left over:** none for M15. Next: M16 — Logbook.
+
+## M14 — Conflict UI primitives — HARD — done (2026-11-11)
 
 ## M10 — Server sync endpoints — HARD — done (2026-11-10)
 

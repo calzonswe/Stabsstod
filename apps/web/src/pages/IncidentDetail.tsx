@@ -1,8 +1,19 @@
+// Incident workspace shell — plan.md §5 / M15
+//
+// Route /incidents/:id with navigation tabs:
+//   Läge (Situation), Inriktning (Direction), Samordning (Coordination),
+//   Logg (Logbook), Karta (Map), Stab (Staff), Rapporter (Reports).
+//
+// Role-aware: write actions are hidden using can() from @stabs/shared.
+// Header shows incident name, status, elapsed time, my function,
+// sync chip, language switch, bell placeholder.
+
 import { useEffect, useState } from 'react';
 import type { FormEvent as ReactFormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.js';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { can, type Actor } from '@stabsstod/shared';
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(path, { credentials: 'include', ...init });
@@ -31,7 +42,38 @@ type MemberRow = {
   functionIds: string[];
 };
 
-export default function IncidentDetail() {
+type TabId =
+  | 'situation'
+  | 'direction'
+  | 'coordination'
+  | 'log'
+  | 'map'
+  | 'staff'
+  | 'reports';
+
+const TABS: { id: TabId; labelKey: string }[] = [
+  { id: 'situation', labelKey: 'incidents.workspace.situation' },
+  { id: 'direction', labelKey: 'incidents.workspace.direction' },
+  { id: 'coordination', labelKey: 'incidents.workspace.coordination' },
+  { id: 'log', labelKey: 'incidents.workspace.log' },
+  { id: 'map', labelKey: 'incidents.workspace.map' },
+  { id: 'staff', labelKey: 'incidents.workspace.staff' },
+  { id: 'reports', labelKey: 'incidents.workspace.reports' },
+];
+
+function formatElapsed(startedAt: string | null): string {
+  if (!startedAt) return '--:--:--';
+  const start = new Date(startedAt).getTime();
+  const now = Date.now();
+  const diffMs = now - start;
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+export default function IncidentWorkspace() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
@@ -41,6 +83,7 @@ export default function IncidentDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [activeTab, setActiveTab] = useState<TabId>('situation');
 
   useEffect(() => {
     if (id) {
@@ -94,6 +137,34 @@ export default function IncidentDetail() {
     }
   }
 
+  // Build actor for can() permission checks
+  const myMember = user && incident && id ? members.find((m) => m.id === user.id) : undefined;
+  const actor: Actor | null = user && incident && id && myMember
+    ? {
+        userId: user.id,
+        incidentId: id,
+        role: incident.role as Actor['role'],
+        functionIds: myMember.functionIds,
+      }
+    : null;
+
+  // Permission checks using can()
+  const canWriteLogEntry = actor
+    ? can(actor, 'write', { entityType: 'log_entry', incidentId: id!, functionId: null }, {})
+    : false;
+  const canWriteMission = actor
+    ? can(actor, 'write', { entityType: 'mission', incidentId: id!, functionId: null }, {})
+    : false;
+  const canWriteTask = actor
+    ? can(actor, 'write', { entityType: 'task', incidentId: id!, functionId: null }, {})
+    : false;
+  const canWriteBriefing = actor
+    ? can(actor, 'write', { entityType: 'briefing', incidentId: id!, functionId: null }, {})
+    : false;
+
+  const isChiefOrDeputy = incident?.role === 'chief_of_staff' || incident?.role === 'deputy_chief';
+  const isAdmin = user?.role === 'admin';
+
   if (loading) {
     return <div className="text-center py-10">{t('incidents.loading')}</div>;
   }
@@ -112,35 +183,184 @@ export default function IncidentDetail() {
     return <div className="text-center py-10">{t('incidents.detail.notFound')}</div>;
   }
 
-  const isChiefOrDeputy = incident.role === 'chief_of_staff' || incident.role === 'deputy_chief';
-  const isAdmin = user?.role === 'admin';
+  const elapsed = formatElapsed(incident.startedAt);
 
   return (
-    <div className="max-w-4xl mx-auto py-6 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{incident.name}</h1>
-          <p className="text-slate-600">
-            {incident.type} · {incident.status} ·{' '}
-            {t('incidents.detail.yourRole', { role: incident.role })}
-          </p>
+    <div className="max-w-7xl mx-auto py-6 space-y-6">
+      {/* Header */}
+      <header className="border-b border-slate-200 bg-white px-4 py-3 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900">{incident.name}</h1>
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-medium ${
+                incident.status === 'active'
+                  ? 'bg-green-100 text-green-700'
+                  : incident.status === 'winding_down'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              {incident.status}
+            </span>
+          </div>
+          <div className="flex flex-col lg:flex-row items-center gap-3 text-sm">
+            <div className="flex items-center gap-2 text-slate-600">
+              <span className="font-medium">{t('incidents.header.myFunction')}</span>
+              <span>{myMember?.functionIds.join(', ') || '—'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-600">
+              <span className="font-medium">{t('incidents.header.elapsed')}</span>
+              <span>{elapsed}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-600">
+              <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+              <span>{t('incidents.header.sync')}</span>
+            </div>
+            <button
+              className="text-slate-600 hover:text-slate-900"
+              aria-label={t('incidents.header.bell')}
+            >
+              🔔
+            </button>
+          </div>
         </div>
-        <Link to="/incidents" className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-700">
-          {t('incidents.detail.back')}
-        </Link>
-      </div>
+      </header>
+
+      {/* Navigation tabs */}
+      <nav className="border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row gap-1 overflow-x-auto">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                  isActive
+                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50'
+                    : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                {t(tab.labelKey)}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       {error && (
-        <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100">
-          {error}
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100 inline-block">
+            {error}
+          </div>
         </div>
       )}
       {saveError && (
-        <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100">
-          {saveError}
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100 inline-block">
+            {saveError}
+          </div>
         </div>
       )}
 
+      {/* Tab content */}
+      <main className="max-w-7xl mx-auto px-4 py-4 min-h-[400px]">
+        {activeTab === 'situation' && (
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {t('incidents.workspace.situation')}
+            </h2>
+            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+          </div>
+        )}
+        {activeTab === 'direction' && (
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {t('incidents.workspace.direction')}
+            </h2>
+            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+            {canWriteMission ? (
+              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 text-sm text-blue-800">
+                Write access: mission
+              </div>
+            ) : (
+              <div className="mt-4 p-3 bg-slate-100 rounded border border-slate-200 text-sm text-slate-500">
+                {t('incidents.placeholder.noWriteAccess')}
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === 'coordination' && (
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {t('incidents.workspace.coordination')}
+            </h2>
+            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+            {canWriteTask ? (
+              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 text-sm text-blue-800">
+                Write access: task
+              </div>
+            ) : (
+              <div className="mt-4 p-3 bg-slate-100 rounded border border-slate-200 text-sm text-slate-500">
+                {t('incidents.placeholder.noWriteAccess')}
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === 'log' && (
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {t('incidents.workspace.log')}
+            </h2>
+            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+            {canWriteLogEntry ? (
+              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 text-sm text-blue-800">
+                Write access: log entry
+              </div>
+            ) : (
+              <div className="mt-4 p-3 bg-slate-100 rounded border border-slate-200 text-sm text-slate-500">
+                {t('incidents.placeholder.noWriteAccess')}
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === 'map' && (
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {t('incidents.workspace.map')}
+            </h2>
+            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+          </div>
+        )}
+        {activeTab === 'staff' && (
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {t('incidents.workspace.staff')}
+            </h2>
+            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+            {canWriteBriefing ? (
+              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 text-sm text-blue-800">
+                Write access: briefing
+              </div>
+            ) : (
+              <div className="mt-4 p-3 bg-slate-100 rounded border border-slate-200 text-sm text-slate-500">
+                {t('incidents.placeholder.noWriteAccess')}
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === 'reports' && (
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {t('incidents.workspace.reports')}
+            </h2>
+            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+          </div>
+        )}
+      </main>
+
+      {/* Functions and members sections (kept from original) */}
       <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">
           {t('incidents.detail.functions')}
@@ -149,7 +369,7 @@ export default function IncidentDetail() {
           {functions.map((f) => (
             <div key={f.id} className="flex items-center gap-4">
               <span className="w-20 text-sm text-slate-600 font-medium">{f.name}</span>
-              {isChiefOrDeputy || isAdmin ? (
+              {isChiefOrDeputy || isAdmin || canWriteMission ? (
                 <input
                   type="text"
                   defaultValue={f.name}
@@ -208,7 +428,7 @@ export default function IncidentDetail() {
         </div>
       </div>
 
-      {(isChiefOrDeputy || isAdmin) && (
+      {(isChiefOrDeputy || isAdmin || canWriteMission) && (
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">
             {t('incidents.detail.addMember')}
