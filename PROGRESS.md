@@ -3,11 +3,35 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
-## M11 — Client local store — HARD — next
+## M11 — Client local store — HARD — done (2026-11-11)
 
-**Next:** M11 — Client local store — HARD (Dexie schema from §5.3, `LocalStore` class:
-`addLocalRecord`, `ingestRemoteRecords`, `getEntity`, `liveQuery` helpers, incremental
-update of the `entities` cache. Local DB name includes the user id.)
+**Done:**
+- `apps/web/src/localStore.ts`: Dexie-based IndexedDB store. DB name includes user id
+  (`stabsstod-<userId>`). Tables: `records`, `outbox`, `entities`, `meta`, `blobs`.
+  Methods: `addLocalRecord`, `ingestRemoteRecords`, `getEntity`, `getRecordsByIncident`,
+  `getRecordsByEntity`, `getOutbox`, `markOutboxSent`, `markOutboxRejected`,
+  `getPendingOutbox`, `getCursor`, `setCursor`, `addBlob`, `getBlob`, `removeBlob`,
+  `close`, `delete`, `useEntity`, `useRecordsByIncident`.
+- `apps/web/src/localStore.test.ts`: 11 tests — add/read, ingest out-of-order,
+  conflict visible in entities, outbox contents correct, user id isolation. All pass.
+- `apps/web/src/_setup-indexedDB.ts`: sets `globalThis.indexedDB` from `fake-indexeddb`
+  before Dexie loads.
+- `apps/web/src/testSetup.ts` / `apps/web/vite.config.ts`: fixed `any` casts for lint;
+  alias `@stabsstod/shared` → `packages/shared/src/index.ts`.
+- `apps/web/package.json`: added `dexie`, `dexie-react-hooks`, `fake-indexeddb`.
+
+**Learned:**
+- Dexie checks `globalThis.indexedDB` at module load time, so Dexie must be imported
+  lazily (inside methods) rather than at module top level to work in jsdom/Vitest.
+- `vi.mock('dexie')` does not intercept dynamic `import('dexie')` calls in Vitest 5.1;
+  instead set `globalThis.__TEST_DEXIE__` as a test override.
+- Dexie constructor accepts `{ indexedDB }` option to override cached `domDeps.indexedDB`.
+
+**Verified:** `pnpm -r typecheck` (web passes; api has pre-existing unrelated errors),
+`pnpm --filter web lint` passes, `pnpm --filter web test` passes (15/15).
+
+**Left over:** none for M11. Next: M12 — Client sync loop — HARD (push/pull/SSE,
+outbox sync, Dexie outbox → POST /api/sync/push, GET /api/sync/pull, SSE events).
 
 ## M10 — Server sync endpoints — HARD — done (2026-11-10)
 
