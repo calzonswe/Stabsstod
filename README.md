@@ -20,3 +20,22 @@ The organisation is expected to run its own reverse proxy in front of the api
 
 The api runs database migrations at start under a Postgres advisory lock, so only
 one instance migrates at a time.
+
+## PWA and offline mode
+
+The web app is a Progressive Web App (PWA) that works offline:
+
+- The app shell and static assets are precached by a service worker
+- All data writes go to local Dexie (IndexedDB) first, then sync when online
+- When offline, the header shows an "Offline" indicator
+- When back online, pending changes are pushed to the server automatically
+
+Service workers require a secure context (HTTPS or localhost). In production, the
+organisation's reverse proxy must provide HTTPS. For local development, `localhost`
+is treated as secure by browsers.
+
+## Offline CA note
+
+If your organisation runs its own reverse proxy with HTTPS, ensure client devices
+trust the proxy's CA certificate so service workers can install and the PWA can
+work offline.

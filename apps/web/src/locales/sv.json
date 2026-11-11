@@ -24,6 +24,7 @@
   "auth.changePassword.updating": "Uppdaterar...",
   "auth.changePassword.failed": "Kunde inte byta lösenord",
   "auth.nav.logout": "Logga ut",
+  "sync.offline": "Offline",
   "users.title": "Användarhantering",
   "users.subtitle": "Hantera användare, roller och lösenord",
   "users.loading": "Laddar användare...",

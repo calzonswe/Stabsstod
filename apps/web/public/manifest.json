@@ -1,0 +1,63 @@
+{
+  "id": "/",
+  "name": "Stabsstöd",
+  "short_name": "Stabsstöd",
+  "description": "Incident management staff support system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "sv",
+  "dir": "ltr",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/pwa-screenshot-1280x720.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Stabsstöd - Incident workspace"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Incidents",
+      "short_name": "Incidents",
+      "url": "/incidents",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Logbook",
+      "short_name": "Logbook",
+      "url": "/incidents/:id",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

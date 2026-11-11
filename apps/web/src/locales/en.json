@@ -24,6 +24,7 @@
   "auth.changePassword.updating": "Updating...",
   "auth.changePassword.failed": "Failed to change password",
   "auth.nav.logout": "Log out",
+  "sync.offline": "Offline",
   "users.title": "User administration",
   "users.subtitle": "Manage users, roles and passwords",
   "users.loading": "Loading users...",

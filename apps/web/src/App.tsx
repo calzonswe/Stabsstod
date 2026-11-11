@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate, Outlet, RouterProvider, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AuthProvider, useAuth, RequireAdmin } from './contexts/AuthContext.js';
 import Login from './pages/Login.js';
 import ChangePassword from './pages/ChangePassword.js';
@@ -14,6 +14,18 @@ function Layout() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const switchLang = () => i18n.changeLanguage(i18n.language === 'sv' ? 'en' : 'sv');
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' && navigator.onLine);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -72,6 +84,12 @@ function Layout() {
             {user ? (
               <>
                 <span className="hidden md:block text-sm text-slate-600">{user.username}</span>
+                {!isOnline && (
+                  <span className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded border border-amber-200">
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                    {t('sync.offline')}
+                  </span>
+                )}
                 <button
                   onClick={() => {
                     void logout();
