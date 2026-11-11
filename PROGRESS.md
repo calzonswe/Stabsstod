@@ -93,6 +93,36 @@ anything left over. Newest milestone last.
 
 **Left over:** none for M13. Next: M14 — Conflict UI primitives — HARD.
 
+## M14 — Conflict UI primitives — HARD — done (2026-11-11)
+
+**Done:**
+- `apps/web/src/components/ConflictBanner.tsx`: ConflictBanner component showing both
+  heads side by side with author, time, and payload. "Use this version" action calls
+  onMerge with the selected head and all heads. Shows "Merging..." state during sync.
+- `apps/web/src/components/EntityHistory.tsx`: EntityHistory drawer showing all
+  versions of an entity ordered by HLC, with kind (put/retract), author, time, and
+  payload for each version.
+- `apps/web/src/components/ConflictBanner.test.tsx`: 7 tests — render both heads,
+  show current version as selected, call onMerge with selected head + all heads,
+  merging state, merge record parentIds contains all heads.
+- `apps/web/src/components/EntityHistory.test.tsx`: 3 tests — renders nothing when
+  closed, renders all records when open, calls onClose when close button clicked.
+- `apps/web/src/locales/{sv,en}.json`: Added conflict.* and history.* strings.
+
+**Learned:**
+- `getByText()` finds multiple elements when duplicate text exists (e.g., "Spara"
+  appears twice for two "put" records). Use `getAllByText()` with length checks
+  instead.
+- Vitest runs tests within a file sequentially, but `screen` global can cause
+  cross-test interference; use render return value (`const { getByText } = render()`)
+  for test isolation.
+- `getByLabelText()` and `getByTestId()` can also find multiple elements; use
+  `container.querySelector('[data-testid="..."]')` as a fallback.
+
+**Verified:** Full quality gate green: typecheck, lint, test (30/30 across 6 test files).
+
+**Left over:** none for M14. Next: M15 — Incident workspace shell — HARD.
+
 ## M10 — Server sync endpoints — HARD — done (2026-11-10)
 
 ## M10 — Server sync endpoints — HARD — done (2026-11-10)
