@@ -8,6 +8,7 @@ export { materialize, materializeOne } from './materialize.js';
 export type { FunctionPreset, TemplateText } from './presets.js';
 export { FUNCTION_PRESETS, TEMPLATE_TEXTS, getPreset, getTemplate } from './presets.js';
 export type { EntitySchema, LogEntryPayload, FactItemPayload } from './entityRegistry.js';
+export { FactItemStatus } from './entityRegistry.js';
 export { getEntitySchema, validateEntityPayload } from './entityRegistry.js';
 export type { Actor, IncidentRole, Action, RecordLike, CanContext } from './permissions.js';
 export { can } from './permissions.js';

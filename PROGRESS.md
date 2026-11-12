@@ -46,6 +46,46 @@ exercised in the API tests, not in this component test; function filter and
 time-range filter for the list are not implemented yet (category + text search
 are) — candidate for later polish. Next: M17.
 
+## M17 — Facts, assumptions, information needs — HARD — done (2026-11-12)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: Reshaped `fact_item` payload schema
+  for the board: `{ text, status: verified|assumption|info_need|refuted,
+  source?, logEntryId? }` + exported `FactItemStatus`. 6 new shared schema
+  tests (`entityRegistry.test.ts`): valid statuses, optional source/log link,
+  unknown status rejected, empty text rejected, missing status rejected,
+  non-object rejected.
+- `apps/web/src/hooks/useFactItems.ts`: Same offline-first flow as M16.
+  `changeStatus` = NEW VERSION: parentIds = current heads, payload = last
+  non-retract payload with the new status; history kept. Refuted items get
+  `displayStatus` = the last non-refuted status so they stay in their original
+  column, struck through.
+- `apps/web/src/pages/FactBoard.tsx`: Three-column board Vet/Antar/Vet ej
+  wired into the workspace "Läge" tab. Create form (text, status, source, log
+  entry link); transition actions per column (assumption → Verifierad/Avfärdad,
+  info need → Besvarad); owner and function filters; refuted/retracted struck
+  through; retract dialog with mandatory reason.
+- `apps/web/src/pages/FactBoard.test.tsx`: 5 tests — columns render; assumption
+  → verified creates new version with previous head as parent + card moves
+  column; assumption → refuted struck through + 2 versions in history; owner
+  filter; direct `materializeOne` chain test (3 versions, 1 head, history kept).
+- `apps/web/src/locales/{sv,en}.json`: facts.* strings.
+
+**Learned:**
+- A refuted item must not be grouped by its new status ('refuted' is not a
+  column) — keep the original column via a separate `displayStatus` field on
+  the view.
+- Shared `index.ts` can't `export type` and value-export the same name in two
+  lines without a duplicate identifier — keep the type-only export on the
+  `export type {...}` line and the const on its own line.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(97 shared + 57 api + 38 web tests).
+
+**Left over:** conflict handling on fact items relies on the generic
+ConflictBanner (not yet surfaced in the board UI — a follow-up); "link to log
+entries" is a plain id field, not yet a navigable link. Next: M18.
+
 ## M11 — Client local store — HARD — done (2026-11-11)
 
 **Done:**
