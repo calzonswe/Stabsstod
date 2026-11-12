@@ -1,74 +1,13 @@
 // Client local store tests — plan.md §5.3 / M11
 //
-// Tests use a mock Dexie class set via globalThis.__TEST_DEXIE__ to avoid
-// IndexedDB environment issues. Dexie is imported lazily inside LocalStore
-// methods, so the override must be set before LocalStore is imported.
+// Mock Dexie class — used as globalThis.__TEST_DEXIE__ override.
+// The shared implementation lives in testMockDexie.ts.
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import './testMockDexie.js';
 
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 
-// Mock Dexie class — used as globalThis.__TEST_DEXIE__ override
-class MockTable {
-  private data = new Map<string, any>();
-  async put(keyOrRecord: any, value?: any) {
-      if (value === undefined) {
-        const key = keyOrRecord.id ?? keyOrRecord.entityId ?? keyOrRecord.incidentId ?? keyOrRecord.hash;
-        this.data.set(key, keyOrRecord);
-      } else {
-        this.data.set(keyOrRecord, value);
-      }
-      return undefined;
-    }
-  async bulkPut(items: any[]) {
-    items.forEach(i => {
-      const key = i.id ?? i.entityId ?? i.incidentId ?? i.hash;
-      if (key !== undefined) this.data.set(key, i);
-    });
-    return undefined;
-  }
-  async get(key: any) { return this.data.get(key); }
-  async delete(key: string) { this.data.delete(key); return undefined; }
-  async toArray() { return Array.from(this.data.values()); }
-  async update(key: string, changes: any) { const existing = this.data.get(key); if (existing) this.data.set(key, { ...existing, ...changes }); }
-  where(field: string) { return new MockQuery(this.data, field); }
-}
-class MockQuery {
-  constructor(private data: Map<string, any>, private field: string) {}
-  anyOf(values: any[]) { return new MockQueryResults(this.data, this.field, values); }
-  equals(value: any) { return new MockQueryResults(this.data, this.field, [value]); }
-}
-class MockQueryResults {
-  constructor(private data: Map<string, any>, private field: string, private values: any[]) {}
-  async toArray() {
-    const result: any[] = [];
-    for (const v of this.data.values()) {
-      if (this.values.includes(v[this.field])) result.push(v);
-    }
-    return result;
-  }
-  async first() {
-    for (const v of this.data.values()) {
-      if (this.values.includes(v[this.field])) return v;
-    }
-    return undefined;
-  }
-}
-class Dexie {
-  records = new MockTable();
-  outbox = new MockTable();
-  entities = new MockTable();
-  meta = new MockTable();
-  blobs = new MockTable();
-  version(): any { return this; }
-  stores(): any { return this; }
-  async close() { return undefined; }
-  async delete() { return undefined; }
-}
-
 // Set the test override before importing LocalStore
-(globalThis as any).__TEST_DEXIE__ = Dexie;
-
 import { LocalStore } from './localStore.js';
 import type { RecordEnvelope } from '@stabsstod/shared';
 

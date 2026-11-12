@@ -6,29 +6,45 @@ anything left over. Newest milestone last.
 ## M16 — Logbook — HARD — done (2026-11-12)
 
 **Done:**
-- `apps/web/src/pages/Logbook.tsx`: Logbook page rendered inside the incident
-  workspace shell's "Logg" tab (wired in `IncidentDetail.tsx`, replacing the
-  coming-soon placeholder). Shows title, subtitle and placeholder content;
-  entries list and create-entry form land with the sync-engine-backed write
-  flow in later milestones.
-- `apps/web/src/pages/Logbook.test.tsx`: 2 component tests (Swedish default
-  language, like the other component tests).
-- `apps/web/src/locales/{sv,en}.json`: Added `logbook.*` keys (title, subtitle,
-  loading, createEntry, recentEntries, comingSoon, empty, placeholder).
+- `apps/web/src/hooks/useLogbook.ts`: Offline-first write path for log entries.
+  create → `newRecord()` (HLC tick, persisted in localStorage) → `LocalStore.
+  addLocalRecord` (records table + outbox) → materialized view updates
+  immediately; retract builds a `kind:'retract'` record with all current heads
+  as parents; merge builds a `put` with ALL heads as parents (collapses the
+  conflict). Views expose `current`, `lastPut` (last `put` — used for display
+  when current is a retract), `conflict`, `heads`, `history`, `retracted`.
+- `apps/web/src/hlcStore.ts`: Device id (localStorage, stable per browser) +
+  persisted HLC state so ticks never go backwards after reload.
+- `apps/web/src/pages/Logbook.tsx`: Create form (text, category, event time,
+  source) with public-record reminder; list with text search + category filter;
+  retract dialog with mandatory reason; retracted entries shown struck through;
+  conflict chip → ConflictBanner; EntityHistory drawer. Wired into the
+  workspace shell's "Logg" tab in `IncidentDetail.tsx` (LocalStore instance
+  created per incident page from the logged-in user id).
+- `apps/web/src/testMockDexie.ts`: Shared in-memory mock Dexie
+  (`__TEST_DEXIE__`), extracted from localStore.test.ts which now imports it.
+- `apps/web/src/pages/Logbook.test.tsx`: 3 integration tests over the real
+  LocalStore: create offline → appears immediately + lands in outbox; retract
+  with reason → struck through + retract record has original as parent;
+  conflict → banner shows both heads, merge record has both heads as parents.
+- `apps/web/src/locales/{sv,en}.json`: logbook.* form/filter/retract/category
+  strings.
 
 **Learned:**
-- Component tests run without auto-cleanup (`globals` not enabled in the Vitest
-  config), so DOM accumulates across tests in one file — use `getAllByText`
-  when the same key appears in more than one render.
-- Test assertions must use the default language's strings (sv) — English text
-  never matches unless the language is switched first.
+- After a retract, `materialize.current` is the retract record — its payload is
+  `{reason}`, so display must read the last `put` from history (`lastPut`).
+- `materializeOne(records, entityId)` returns `Materialization | undefined`.
+- fake-indexeddb's global install in vite.config/testSetup is not enough for
+  Dexie under jsdom here — the repo's proven path is the `__TEST_DEXIE__` mock;
+  extracted it so multiple test files share one implementation.
 
-**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` all green
-(91 shared + 57 api + 32 web tests).
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(91 shared + 57 api + 33 web tests).
 
-**Left over:** Logbook write flow (create log entry → outbox → sync) is part of
-the per-module write UI milestones; this milestone delivers the shell +
-placeholder + schema plumbing.
+**Left over:** server-side sync round-trip (push/pull against the API) is
+exercised in the API tests, not in this component test; function filter and
+time-range filter for the list are not implemented yet (category + text search
+are) — candidate for later polish. Next: M17.
 
 ## M11 — Client local store — HARD — done (2026-11-11)
 

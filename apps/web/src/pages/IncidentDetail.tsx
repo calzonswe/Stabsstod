@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext.js';
 import { useParams } from 'react-router-dom';
 import { can, type Actor } from '@stabsstod/shared';
 import Logbook from './Logbook.js';
+import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(path, { credentials: 'include', ...init });
@@ -85,6 +86,9 @@ export default function IncidentWorkspace() {
   const [error, setError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [activeTab, setActiveTab] = useState<TabId>('situation');
+  const [localStore] = useState<LocalStore | null>(() =>
+    user ? new LocalStore({ userId: user.id }) : null,
+  );
 
   useEffect(() => {
     if (id) {
@@ -307,7 +311,11 @@ export default function IncidentWorkspace() {
           </div>
         )}
         {activeTab === 'log' && (
-          <Logbook />
+          <Logbook
+            store={localStore}
+            incidentId={id!}
+            authorId={user?.id ?? ''}
+          />
         )}
         {activeTab === 'map' && (
           <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
