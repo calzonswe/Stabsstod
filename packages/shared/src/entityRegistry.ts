@@ -74,10 +74,44 @@ const situationSnapshotSchema = z.object({
   ),
 });
 
+// scenario — M19: contingency scenarios grouped by time horizon and
+// likelihood, with an optional contingency plan text and an optional link
+// to a task entity.
+export const ScenarioHorizon = {
+  hours: 'hours',
+  twoDays: 'two_days',
+  twoWeeks: 'two_weeks',
+  custom: 'custom',
+} as const;
+
+export type ScenarioHorizon = (typeof ScenarioHorizon)[keyof typeof ScenarioHorizon];
+
+export const ScenarioLikelihood = {
+  probable: 'probable',
+  possible: 'possible',
+} as const;
+
+export type ScenarioLikelihood = (typeof ScenarioLikelihood)[keyof typeof ScenarioLikelihood];
+
+const scenarioSchema = z.object({
+  title: z.string().min(1),
+  // plan.md §6: description is required, implications optional.
+  description: z.string().min(1),
+  implications: z.string().optional(),
+  horizon: z.enum(['hours', 'two_days', 'two_weeks', 'custom']),
+  // Required when horizon is 'custom': free-text description of the horizon.
+  customHorizon: z.string().optional(),
+  likelihood: z.enum(['probable', 'possible']),
+  contingencyPlan: z.string().optional(),
+  // Optional link to a task entity (entityId).
+  taskId: z.string().optional(),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
   [EntityType.situationSnapshot, situationSnapshotSchema],
+  [EntityType.scenario, scenarioSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -103,3 +137,4 @@ export function validateEntityPayload(
 export type LogEntryPayload = z.infer<typeof logEntrySchema>;
 export type FactItemPayload = z.infer<typeof factItemSchema>;
 export type SituationSnapshotPayload = z.infer<typeof situationSnapshotSchema>;
+export type ScenarioPayload = z.infer<typeof scenarioSchema>;

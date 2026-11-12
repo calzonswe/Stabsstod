@@ -17,6 +17,7 @@ import { can, type Actor } from '@stabsstod/shared';
 import Logbook from './Logbook.js';
 import FactBoard from './FactBoard.js';
 import SituationEditor from './SituationEditor.js';
+import ScenarioBoard from './ScenarioBoard.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -274,6 +275,7 @@ export default function IncidentWorkspace() {
           <>
             <FactBoard store={localStore} incidentId={id!} authorId={user?.id ?? ''} />
             <SituationEditor store={localStore} incidentId={id!} authorId={user?.id ?? ''} />
+            <ScenarioBoard store={localStore} incidentId={id!} authorId={user?.id ?? ''} />
           </>
         )}
         {activeTab === 'direction' && (

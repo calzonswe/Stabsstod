@@ -10,8 +10,12 @@ export { FUNCTION_PRESETS, TEMPLATE_TEXTS, getPreset, getTemplate } from './pres
 export type { EntitySchema, LogEntryPayload, FactItemPayload } from './entityRegistry.js';
 export { FactItemStatus, PROTECTED_VALUES } from './entityRegistry.js';
 export type { SituationSnapshotPayload } from './entityRegistry.js';
+export type { ScenarioPayload } from './entityRegistry.js';
+export { ScenarioHorizon, ScenarioLikelihood } from './entityRegistry.js';
 export type { DiffLine } from './diff.js';
 export { diffLines, renderSnapshotText } from './diff.js';
 export { getEntitySchema, validateEntityPayload } from './entityRegistry.js';
+export type { ScenarioGroup, ScenarioGroupItem } from './scenarios.js';
+export { groupScenarios, HORIZON_ORDER, LIKELIHOOD_ORDER } from './scenarios.js';
 export type { Actor, IncidentRole, Action, RecordLike, CanContext } from './permissions.js';
 export { can } from './permissions.js';

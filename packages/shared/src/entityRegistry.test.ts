@@ -62,3 +62,67 @@ describe('fact_item payload schema', () => {
     expect(result.success).toBe(false);
   });
 });
+
+// scenario — M19
+const scenarioBase = {
+  title: 'Sjukt pålägg på tal',
+  description: 'Resurser tar slut om intensiteten består',
+  horizon: 'two_days',
+  likelihood: 'probable',
+};
+
+describe('scenario payload schema', () => {
+  it('accepts a valid scenario with all horizons', () => {
+    for (const horizon of ['hours', 'two_days', 'two_weeks', 'custom']) {
+      const result = validateEntityPayload(EntityType.scenario, {
+        ...scenarioBase,
+        horizon,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('accepts optional contingency plan, task link and custom horizon text', () => {
+    const result = validateEntityPayload(EntityType.scenario, {
+      ...scenarioBase,
+      horizon: 'custom',
+      customHorizon: 'Inom 36 timmar',
+      implications: 'Bemanningsteknik måste aktiveras',
+      contingencyPlan: 'Aktivera reservbemanning',
+      taskId: 'task-123',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects empty description', () => {
+    const result = validateEntityPayload(EntityType.scenario, {
+      ...scenarioBase,
+      description: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an unknown horizon', () => {
+    const result = validateEntityPayload(EntityType.scenario, {
+      ...scenarioBase,
+      horizon: 'a_year',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an unknown likelihood', () => {
+    const result = validateEntityPayload(EntityType.scenario, {
+      ...scenarioBase,
+      likelihood: 'impossible',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty title', () => {
+    const result = validateEntityPayload(EntityType.scenario, {
+      ...scenarioBase,
+      title: '',
+    });
+    expect(result.success).toBe(false);
+  });
+});

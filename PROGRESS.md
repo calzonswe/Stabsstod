@@ -3,6 +3,47 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M19 — Scenarios and time scales — done (2026-11-12)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `scenario` schema per plan §6 —
+  `{ title, description (required), implications?, horizon:
+  hours|two_days|two_weeks|custom, customHorizon? (required for custom),
+  likelihood: probable|possible, contingencyPlan?, taskId? }`; exported
+  `ScenarioHorizon`/`ScenarioLikelihood`. 6 new shared schema tests
+  (valid horizons, optional fields, unknown horizon/likelihood, empty
+  title/description rejected).
+- `packages/shared/src/scenarios.ts`: Pure `groupScenarios` — scenarios into
+  horizon × likelihood rows in fixed display order (`HORIZON_ORDER`,
+  `LIKELIHOOD_ORDER`), empty horizons omitted. 4 grouping tests.
+- `apps/web/src/hooks/useScenarios.ts`: create/edit/retract offline-first.
+  Edit = new version with current heads as parents; retract with mandatory
+  reason.
+- `apps/web/src/pages/ScenarioBoard.tsx`: Grid of horizon rows (Timmar /
+  2 dygn / 2 veckor / Annan) × likelihood columns (Troliga / Möjliga),
+  cards with description, implications, contingency plan, task link;
+  shared create/edit dialog; retract dialog. Wired into the workspace
+  "Läge" tab below the situation editor.
+- `apps/web/src/pages/ScenarioBoard.test.tsx`: 6 tests — empty state;
+  seeded scenarios group under horizon headings/likelihood columns; create
+  via form lands in the right cell + outbox; edit = new version with
+  previous head as parent; retract with reason removes from grid + retract
+  record has parent; direct groupScenarios full-grid order test.
+- `apps/web/src/locales/{sv,en}.json`: scenarios.* strings (sv/en parity).
+
+**Learned:**
+- `groupScenarios` keys off `horizon`/`likelihood` fields — the view object
+  must carry them (mapped from the payload) or every scenario silently
+  drops out of the grid (no error, just "no scenarios"). Test 2 caught it.
+- `as const` object spreads produce widened types in array literals — type
+  the array explicitly for pure helpers with constrained generics.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(115 shared + 57 api + 48 web tests).
+
+**Left over:** "link to tasks" is a plain id field until M22 adds the task
+module; conflict ConflictBanner not surfaced on scenario cards. Next: M20.
+
 ## M18 — Situation picture — HARD — done (2026-11-12)
 
 **Done:**
