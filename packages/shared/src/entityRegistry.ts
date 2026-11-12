@@ -216,6 +216,38 @@ const taskSchema = z.object({
   parentTaskId: z.string().optional(),
 });
 
+// timeline_event — M23: a manual event on the horizontal timeline. Manual
+// events are the user-authored items; the timeline also derives items from
+// other entities (task deadlines, decisions; briefings/shifts in M24/M25).
+// `scope` decides the side of the axis: internal below, external above.
+export const TimelineEventType = {
+  meeting: 'meeting',
+  deadline: 'deadline',
+  decision: 'decision',
+  milestone: 'milestone',
+  external: 'external',
+  other: 'other',
+} as const;
+
+export type TimelineEventType = (typeof TimelineEventType)[keyof typeof TimelineEventType];
+
+export const TimelineEventScope = {
+  internal: 'internal',
+  external: 'external',
+} as const;
+
+export type TimelineEventScope = (typeof TimelineEventScope)[keyof typeof TimelineEventScope];
+
+const timelineEventSchema = z.object({
+  title: z.string().min(1),
+  // Event start (ISO datetime, stored UTC).
+  time: z.string().datetime(),
+  // Optional end (ISO datetime) for events that span a duration.
+  endTime: z.string().datetime().optional(),
+  type: z.enum(['meeting', 'deadline', 'decision', 'milestone', 'external', 'other']),
+  scope: z.enum(['internal', 'external']),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -226,6 +258,7 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.decisionRequest, decisionRequestSchema],
   [EntityType.decision, decisionSchema],
   [EntityType.task, taskSchema],
+  [EntityType.timelineEvent, timelineEventSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -257,3 +290,4 @@ export type DirectionPayload = z.infer<typeof directionSchema>;
 export type DecisionRequestPayload = z.infer<typeof decisionRequestSchema>;
 export type TaskPayload = z.infer<typeof taskSchema>;
 export type DecisionPayload = z.infer<typeof decisionSchema>;
+export type TimelineEventPayload = z.infer<typeof timelineEventSchema>;

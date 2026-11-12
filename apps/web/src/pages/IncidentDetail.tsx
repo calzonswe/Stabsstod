@@ -21,6 +21,7 @@ import ScenarioBoard from './ScenarioBoard.js';
 import MissionDirection from './MissionDirection.js';
 import Decisions from './Decisions.js';
 import Tasks from './Tasks.js';
+import Timeline from './Timeline.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -55,6 +56,7 @@ type TabId =
   | 'direction'
   | 'coordination'
   | 'log'
+  | 'timeline'
   | 'map'
   | 'staff'
   | 'reports';
@@ -64,6 +66,7 @@ const TABS: { id: TabId; labelKey: string }[] = [
   { id: 'direction', labelKey: 'incidents.workspace.direction' },
   { id: 'coordination', labelKey: 'incidents.workspace.coordination' },
   { id: 'log', labelKey: 'incidents.workspace.log' },
+  { id: 'timeline', labelKey: 'incidents.workspace.timeline' },
   { id: 'map', labelKey: 'incidents.workspace.map' },
   { id: 'staff', labelKey: 'incidents.workspace.staff' },
   { id: 'reports', labelKey: 'incidents.workspace.reports' },
@@ -314,6 +317,14 @@ export default function IncidentWorkspace() {
             store={localStore}
             incidentId={id!}
             authorId={user?.id ?? ''}
+          />
+        )}
+        {activeTab === 'timeline' && (
+          <Timeline
+            store={localStore}
+            incidentId={id!}
+            authorId={user?.id ?? ''}
+            actor={actor}
           />
         )}
         {activeTab === 'map' && (

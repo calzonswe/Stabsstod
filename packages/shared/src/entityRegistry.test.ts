@@ -383,3 +383,67 @@ describe('task payload schema', () => {
     ).toBe(false);
   });
 });
+
+// timeline_event — M23
+const timelineBase = {
+  title: 'Stabsorientering',
+  time: '2026-11-12T09:00:00Z',
+  type: 'meeting' as const,
+  scope: 'internal' as const,
+};
+
+describe('timeline_event payload schema', () => {
+  it('accepts a valid event with an optional endTime', () => {
+    const result = validateEntityPayload(EntityType.timelineEvent, {
+      ...timelineBase,
+      endTime: '2026-11-12T10:00:00Z',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts every type and scope', () => {
+    for (const type of ['meeting', 'deadline', 'decision', 'milestone', 'external', 'other']) {
+      expect(
+        validateEntityPayload(EntityType.timelineEvent, { ...timelineBase, type }).success,
+      ).toBe(true);
+    }
+    for (const scope of ['internal', 'external']) {
+      expect(
+        validateEntityPayload(EntityType.timelineEvent, { ...timelineBase, scope }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('rejects missing title', () => {
+    expect(
+      validateEntityPayload(EntityType.timelineEvent, {
+        ...timelineBase,
+        title: '',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a non-datetime time', () => {
+    expect(
+      validateEntityPayload(EntityType.timelineEvent, {
+        ...timelineBase,
+        time: 'tomorrow',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects an unknown type and an unknown scope', () => {
+    expect(
+      validateEntityPayload(EntityType.timelineEvent, {
+        ...timelineBase,
+        type: 'party',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.timelineEvent, {
+        ...timelineBase,
+        scope: 'public',
+      }).success,
+    ).toBe(false);
+  });
+});

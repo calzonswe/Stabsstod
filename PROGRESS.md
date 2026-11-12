@@ -3,6 +3,76 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M23 — Timeline — done (2026-11-12)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `timeline_event` schema —
+  `title` (min 1), `time` (ISO datetime), `endTime?` (ISO datetime),
+  `type: meeting|deadline|decision|milestone|external|other`, `scope:
+  internal|external`. Exported the `TimelineEventType`/`TimelineEventScope`
+  const objects and the `TimelineEventPayload` type; registered in
+  `entitySchemas`. 5 new shared schema tests.
+- `packages/shared/src/timeline.ts` (new, pure): derivation for the
+  horizontal timeline — `manualTimelineItems` (timeline_event payloads →
+  items), `taskDeadlineItems` (tasks with a `due` → internal deadline items
+  at the due time), `decisionTimelineItems` (decisions → internal decision
+  items at `decidedAt`), and `deriveTimelineItems` (merges manual + optional
+  briefings/shifts sources (M24/M25) + tasks + decisions into one list sorted
+  by time, stable for equal times). Items carry `source` +
+  `refEntityId` so the UI can link and only manual items are retractable.
+  9 new tests (the acceptance's "derivation unit tests").
+- `packages/shared/src/permissions.ts`: **no change** — the
+  `timeline_event` write rule (chief/deputy any function; function_lead own
+  function) already existed with tests.
+- `apps/web/src/hooks/useTimeline.ts` (new): list-style hook, same
+  offline-first flow as the other module hooks — loads all incident records,
+  materializes `timeline_event`/`task`/`decision` entities, exposes the
+  derived `items`, `createEvent` (new record), `retractEvent` (retract
+  record with reason, parent = previous head).
+- `apps/web/src/pages/Timeline.tsx` (new): the "Tidslinje" tab (new
+  workspace tab between Logg and Karta, matching the §3 module map).
+  Horizontal timeline with zoom (hours/days/weeks); **internal events below
+  the axis line, external above** (stem + dot + label); colours follow the
+  M22 convention (meeting blue, deadline red) extended per type (decision
+  purple, milestone green, external yellow, other black) with a legend.
+  **Windowing:** only items inside the visible scroll window (+ one viewport
+  buffer) are rendered — 200 items render without freezing. Create form
+  (title, time, optional end time, type, scope) and retract-with-reason
+  dialog, both gated by `can()` (chief/deputy any function, function_lead
+  own function; staff_member/observer see the timeline but no write UI).
+- `apps/web/src/pages/Timeline.test.tsx` (new): 6 tests — observer sees
+  items but no create/remove buttons; staff_member no create button; manual
+  + derived (task deadline, decision) items merge and count; **200 items
+  windowed** (count label "200 händelser", < 50 markers in the DOM, far
+  items absent); function_lead creates via the form for own function
+  (record `functionId` = fn-1, kind put); chief retracts with reason
+  (retract record, parent = put, reason stored).
+- `apps/web/src/pages/SituationEditor.test.tsx`: fixed a load-induced flake
+  in the M18 "saving creates a new version" test — it now waits for the
+  editor pre-fill (committed textarea value) before changing the field, not
+  just for the display text; the prefill effect can otherwise flush after
+  the test's change event and save the stale value.
+- `apps/web/src/locales/{sv,en}.json`: `timeline.*` +
+  `incidents.workspace.timeline` strings (parity test).
+
+**Learned:**
+- jsdom has no `Element.scrollTo` — set `el.scrollLeft = 0` directly
+  (works in jsdom and real browsers).
+- A test that changes a form field after an async load must wait for the
+  *form state* to be pre-filled (committed input value), not just for the
+  display text: the prefill `useEffect` can flush between the two and
+  overwrite the change under load.
+- `export type` + `export {` of the same merged const/type from index.ts
+  duplicates the identifier — one value re-export carries both aspects.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(163 shared + 57 api + 78 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19
+scenario cards show a plain conflict badge only (no full ConflictBanner /
+merge UI); M20 acknowledge disabled until a mission exists, mission history
+drawer not rendered. Next: M24 (Staff briefings).
+
 ## M22 — Tasks and staff work plan — done (2026-11-12)
 
 **Done:**

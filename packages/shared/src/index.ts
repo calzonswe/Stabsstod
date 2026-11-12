@@ -13,10 +13,23 @@ export type { SituationSnapshotPayload } from './entityRegistry.js';
 export type { ScenarioPayload } from './entityRegistry.js';
 export type { MissionPayload, DirectionPayload } from './entityRegistry.js';
 export { ScenarioHorizon, ScenarioLikelihood } from './entityRegistry.js';
-export type { DecisionRequestPayload, DecisionPayload, TaskPayload } from './entityRegistry.js';
+export type {
+  DecisionRequestPayload,
+  DecisionPayload,
+  TaskPayload,
+  TimelineEventPayload,
+} from './entityRegistry.js';
 export { TaskStatus, TaskPriority, TaskReportForm } from './entityRegistry.js';
+export { TimelineEventType, TimelineEventScope } from './entityRegistry.js';
 export type { TaskLike } from './tasks.js';
 export { isTaskOverdue, groupTasksByStatus, TASK_STATUS_ORDER, TERMINAL_TASK_STATUSES } from './tasks.js';
+export type { TimelineSource, TimelineItem, TimelineItemSources } from './timeline.js';
+export {
+  manualTimelineItems,
+  taskDeadlineItems,
+  decisionTimelineItems,
+  deriveTimelineItems,
+} from './timeline.js';
 export type { DiffLine } from './diff.js';
 export { diffLines, renderSnapshotText } from './diff.js';
 export { getEntitySchema, validateEntityPayload } from './entityRegistry.js';

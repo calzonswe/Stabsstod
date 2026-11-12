@@ -83,15 +83,18 @@ describe('SituationEditor', () => {
       </I18nextProvider>,
     );
 
-    // The current picture shows the latest version.
+    // The current picture shows the latest version, and the editor is
+    // pre-filled from the latest version (committed form state — waiting on
+    // the value, not just the display, so the prefill effect has run).
     await waitFor(() => {
-      expect(screen.getByText('Släckningsarbete pågår')).toBeInTheDocument();
+      const textareas = screen.getAllByRole('textbox') as HTMLTextAreaElement[];
+      expect(textareas.length).toBe(6);
+      expect(textareas[1].value).toBe('Släckningsarbete pågår');
     });
 
-    // The editor is pre-filled with the latest version; change the "current"
-    // field (textarea order: whatHappened, current, consequences, FIS ×3).
+    // Change the "current" field (textarea order: whatHappened, current,
+    // consequences, FIS ×3).
     const textareas = screen.getAllByRole('textbox') as HTMLTextAreaElement[];
-    expect(textareas.length).toBe(6);
     fireEvent.change(textareas[1], {
       target: { value: 'Brand under kontroll, varma fläcker bevakas' },
     });
