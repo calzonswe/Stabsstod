@@ -3,6 +3,78 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M22 — Tasks and staff work plan — done (2026-11-12)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `task` schema — `title` (min 1),
+  `description`, `assigneeFunctionId` (min 1; the stabsarbetsplan grouping),
+  `assigneeUserId?`, `due?` (ISO datetime), `priority:
+  low|normal|high|critical`, `status: proposed|todo|doing|blocked|done|
+  cancelled`, `reportForm: oral|written|none`, `parentTaskId?` (entityId of
+  the parent task → subtask). Exported the `TaskStatus`/`TaskPriority`/
+  `TaskReportForm` const objects and the `TaskPayload` type; registered in
+  `entitySchemas`. 5 new shared schema tests (all-optional-fields valid,
+  every status/priority/reportForm, missing title, missing
+  `assigneeFunctionId`, unknown status).
+- `packages/shared/src/tasks.ts` (new, pure): `isTaskOverdue(task, now)`
+  (due time in the past and not in a terminal status; `now` injected so it
+  is testable), `groupTasksByStatus` (kanban columns in `TASK_STATUS_ORDER`;
+  unknown statuses fall back to `todo` so they never vanish from the board),
+  `TERMINAL_TASK_STATUSES` (done/cancelled). Exported via `index.ts`. 8 new
+  tests.
+- `packages/shared/src/permissions.ts`: **no change** — the task write rule
+  (chief/deputy/function_lead free; others only `proposed` + own function)
+  already existed with tests, so M22 needed no permission code.
+- `apps/web/src/hooks/useTasks.ts` (new): list-style hook, same offline-first
+  flow as useScenarios/useDecisions — tasks materialized per incident; the
+  record `functionId` is the task's `assigneeFunctionId` (what `can()` gates
+  on); `createTask`, `editTask` (new version), `moveTask` (kanban status
+  change = new version), `cancelTask`, `retractTask` (with reason).
+- `apps/web/src/pages/Tasks.tsx` (new): the "Samordning" tab page (replaces
+  the placeholder). Kanban board (one column per status) under the
+  "Alla funktioner" filter; per-function filter renders the **stabsarbetsplan**
+  table (task, assignee, priority, deadline, report form); overdue
+  highlighting (red) via shared `isTaskOverdue`; subtask `↳` parent-title
+  marker; priority badges; colour-convention legend (meeting blue, task
+  black, deadline red) shown as legend only (plan §10 M22). Task form:
+  non-managers are forced to `proposed` status (plan §7); chief/deputy/lead
+  pick any status and function.
+- `apps/web/src/pages/Tasks.test.tsx` (new): 8 tests — observer sees the
+  board but no create button and no enabled moves; staff_member may create
+  `proposed` for own function but cannot move; function_lead may move any
+  function's tasks; form create writes a `proposed` task record; a status
+  move writes a new version (parent = previous head, payload carried over);
+  overdue marker; stabsarbetsplan per-function view (assignee/deadline/report
+  form); subtask `↳` link to its parent.
+- `apps/web/src/pages/ScenarioBoard.tsx`: resolved the M19 `taskId` leftover
+  — the scenario `taskId` is now a **real entity link**. The form input
+  became a `<select>` over actual task entities (titles as labels); the card
+  renders a "Kopplad åtgärd" button with the resolved task title; new
+  `onTaskClick` prop. `apps/web/src/pages/IncidentDetail.tsx` passes
+  `onTaskClick={() => setActiveTab('coordination')}` so the link jumps to the
+  coordination tab. New test: clicking the link reports the task id.
+- `apps/web/src/locales/{sv,en}.json`: `tasks.*` + `scenarios.form.noTask`
+  strings (parity test).
+
+**Learned:**
+- The task record's `functionId` must be set to `assigneeFunctionId` — that
+  is what `can()` gates on. Seeding it as `null` would strip the assignee
+  function's writers of write access.
+- Lint rejects unused destructured vars (`const { assigneeFunctionId: _drop,
+  ...rest }`) — to omit a field, `delete` on a `Record<string, unknown>`
+  instead.
+- A kanban "move" permission check should gate on the *target* status
+  (`todo`), not the current one: staff can only ever write `proposed`, so
+  gating on the current status would wrongly enable the move.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(151 shared + 57 api + 72 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19
+scenario cards show a plain conflict badge only (no full ConflictBanner /
+merge UI); M20 acknowledge disabled until a mission exists, mission history
+drawer not rendered. Next: M23 (Timeline).
+
 ## M21 — Decisions — done (2026-11-12)
 
 **Done:**

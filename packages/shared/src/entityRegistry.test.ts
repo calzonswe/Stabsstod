@@ -317,3 +317,69 @@ describe('decision payload schema', () => {
     expect(result.success).toBe(false);
   });
 });
+
+// task — M22
+const taskBase = {
+  title: 'Beställ vattenprover',
+  description: 'Ta prover från brunn 2 och 5.',
+  assigneeFunctionId: 'fn-resources',
+  priority: 'normal' as const,
+  status: 'todo' as const,
+  reportForm: 'none' as const,
+};
+
+describe('task payload schema', () => {
+  it('accepts a valid task with all optional fields', () => {
+    const result = validateEntityPayload(EntityType.task, {
+      ...taskBase,
+      assigneeUserId: 'user-9',
+      due: new Date().toISOString(),
+      parentTaskId: 'task-parent-1',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts every status, priority and report form', () => {
+    for (const status of ['proposed', 'todo', 'doing', 'blocked', 'done', 'cancelled']) {
+      expect(
+        validateEntityPayload(EntityType.task, { ...taskBase, status }).success,
+      ).toBe(true);
+    }
+    for (const priority of ['low', 'normal', 'high', 'critical']) {
+      expect(
+        validateEntityPayload(EntityType.task, { ...taskBase, priority }).success,
+      ).toBe(true);
+    }
+    for (const reportForm of ['oral', 'written', 'none']) {
+      expect(
+        validateEntityPayload(EntityType.task, { ...taskBase, reportForm }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('rejects missing title', () => {
+    expect(
+      validateEntityPayload(EntityType.task, {
+        ...taskBase,
+        title: '',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects missing assigneeFunctionId', () => {
+    const payload: Record<string, unknown> = { ...taskBase };
+    delete payload.assigneeFunctionId;
+    expect(
+      validateEntityPayload(EntityType.task, payload).success,
+    ).toBe(false);
+  });
+
+  it('rejects unknown status', () => {
+    expect(
+      validateEntityPayload(EntityType.task, {
+        ...taskBase,
+        status: 'archived',
+      }).success,
+    ).toBe(false);
+  });
+});

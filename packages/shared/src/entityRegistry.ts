@@ -170,6 +170,52 @@ const decisionSchema = z.object({
 });
 
 
+// task — M22: staff work plan item. `status` transitions (proposed → todo →
+// doing → blocked/done/cancelled) create new versions; `parentTaskId` makes
+// it a subtask; `due` is highlighted overdue in shared/tasks.ts.
+export const TaskStatus = {
+  proposed: 'proposed',
+  todo: 'todo',
+  doing: 'doing',
+  blocked: 'blocked',
+  done: 'done',
+  cancelled: 'cancelled',
+} as const;
+
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus];
+
+export const TaskPriority = {
+  low: 'low',
+  normal: 'normal',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export type TaskPriority = (typeof TaskPriority)[keyof typeof TaskPriority];
+
+export const TaskReportForm = {
+  oral: 'oral',
+  written: 'written',
+  none: 'none',
+} as const;
+
+export type TaskReportForm = (typeof TaskReportForm)[keyof typeof TaskReportForm];
+
+const taskSchema = z.object({
+  title: z.string().min(1),
+  description: z.string(),
+  // Function the task is assigned to (stabsarbetsplan grouping).
+  assigneeFunctionId: z.string().min(1),
+  // Optional person on top of the function.
+  assigneeUserId: z.string().optional(),
+  due: z.string().datetime().optional(),
+  priority: z.enum(['low', 'normal', 'high', 'critical']),
+  status: z.enum(['proposed', 'todo', 'doing', 'blocked', 'done', 'cancelled']),
+  reportForm: z.enum(['oral', 'written', 'none']),
+  // Subtask link: entityId of the parent task.
+  parentTaskId: z.string().optional(),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -179,6 +225,7 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.direction, directionSchema],
   [EntityType.decisionRequest, decisionRequestSchema],
   [EntityType.decision, decisionSchema],
+  [EntityType.task, taskSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -208,4 +255,5 @@ export type ScenarioPayload = z.infer<typeof scenarioSchema>;
 export type MissionPayload = z.infer<typeof missionSchema>;
 export type DirectionPayload = z.infer<typeof directionSchema>;
 export type DecisionRequestPayload = z.infer<typeof decisionRequestSchema>;
+export type TaskPayload = z.infer<typeof taskSchema>;
 export type DecisionPayload = z.infer<typeof decisionSchema>;

@@ -4,7 +4,7 @@
 // create/edit (edit = new version with previous head as parent); retract
 // with mandatory reason hides the scenario from the grid.
 
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import '../testMockDexie.js';
@@ -29,6 +29,31 @@ async function seedScenario(
   const { record, state: next } = newRecord({
     entityId,
     entityType: 'scenario',
+    incidentId: INCIDENT,
+    parentIds: [],
+    functionId: null,
+    authorId: 'user-2',
+    deviceId: getDeviceId(),
+    schemaVersion: 1,
+    payload,
+    createdAtClient: new Date().toISOString(),
+    kind: 'put',
+    state,
+  });
+  saveHlcState(next, getDeviceId());
+  await store.ingestRemoteRecords([record]);
+  return record;
+}
+
+async function seedTask(
+  store: LocalStore,
+  entityId: string,
+  payload: Record<string, unknown>,
+) {
+  const state = loadHlcState();
+  const { record, state: next } = newRecord({
+    entityId,
+    entityType: 'task',
     incidentId: INCIDENT,
     parentIds: [],
     functionId: null,
@@ -236,5 +261,41 @@ describe('ScenarioBoard', () => {
     ];
     const groups = groupScenarios(items);
     expect(groups.map((g) => g.horizon)).toEqual(['hours', 'two_days', 'two_weeks', 'custom']);
+  });
+
+  it('resolves the scenario task link to a button that reports the task id', async () => {
+    const store = makeStore('user-m19-5');
+    await seedTask(store, 'task-sc-1', {
+      title: 'Beställ reservdiesel',
+      description: 'Tank 2000 l',
+      assigneeFunctionId: 'fn-1',
+      priority: 'normal',
+      status: 'todo',
+      reportForm: 'none',
+    });
+    await seedScenario(store, 'scenario-task-link', {
+      ...baseScenario,
+      title: 'Reservkraft pågradering',
+      horizon: 'hours',
+      likelihood: 'probable',
+      taskId: 'task-sc-1',
+    });
+
+    const onTaskClick = vi.fn();
+    render(
+      <I18nextProvider i18n={i18n}>
+        <ScenarioBoard
+          store={store}
+          incidentId={INCIDENT}
+          authorId="user-1"
+          onTaskClick={onTaskClick}
+        />
+      </I18nextProvider>,
+    );
+
+    // The link renders as a button labelled with the resolved task title.
+    const link = await screen.findByRole('button', { name: 'Beställ reservdiesel' });
+    fireEvent.click(link);
+    expect(onTaskClick).toHaveBeenCalledWith('task-sc-1');
   });
 });

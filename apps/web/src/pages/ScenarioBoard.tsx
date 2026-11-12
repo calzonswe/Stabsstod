@@ -7,7 +7,11 @@
 
 import { useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { groupScenarios, LIKELIHOOD_ORDER } from '@stabsstod/shared';
+import {
+  groupScenarios,
+  LIKELIHOOD_ORDER,
+  type TaskPayload,
+} from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 import {
   useScenarios,
@@ -15,17 +19,39 @@ import {
   type ScenarioHorizon,
   type ScenarioView,
 } from '../hooks/useScenarios.js';
+import { useTasks } from '../hooks/useTasks.js';
 
 export interface ScenarioBoardProps {
   store: LocalStore | null;
   incidentId: string;
   authorId: string;
+  onTaskClick?: (taskId: string) => void;
 }
 
-export default function ScenarioBoard({ store, incidentId, authorId }: ScenarioBoardProps) {
+export default function ScenarioBoard({
+  store,
+  incidentId,
+  authorId,
+  onTaskClick,
+}: ScenarioBoardProps) {
   const { t } = useTranslation();
   const { scenarios, loading, error, createScenario, editScenario, retractScenario } =
     useScenarios(store, incidentId, authorId);
+  // Real entity link (M22): scenario taskId points to a task entity.
+  const { tasks } = useTasks(store, incidentId, authorId);
+  const taskTitles = useMemo(
+    () =>
+      new Map(
+        tasks
+          .filter((v) => !v.retracted && v.current)
+          .map((v) => [
+            v.entityId,
+            ((v.current?.payload as TaskPayload | undefined)?.title ??
+              v.entityId) as string,
+          ]),
+      ),
+    [tasks],
+  );
 
   // editing = entityId of an existing scenario, null = closed, 'new' = create.
   const [dialog, setDialog] = useState<string | null>(null);
@@ -184,6 +210,17 @@ export default function ScenarioBoard({ store, incidentId, authorId }: ScenarioB
                                 setRetractFor(view.entityId);
                                 setRetractReason('');
                               }}
+                              taskTitle={
+                                (() => {
+                                  const tp = view.lastPut?.payload as
+                                    | { taskId?: string }
+                                    | undefined;
+                                  return tp?.taskId
+                                    ? taskTitles.get(tp.taskId) ?? null
+                                    : null;
+                                })()
+                              }
+                              onTaskClick={onTaskClick}
                             />
                           ))
                         )}
@@ -289,12 +326,20 @@ export default function ScenarioBoard({ store, incidentId, authorId }: ScenarioB
               <span className="block text-xs font-medium text-slate-600 mb-1">
                 {t('scenarios.form.taskLink')}
               </span>
-              <input
-                type="text"
+              <select
                 value={taskId}
                 onChange={(e) => setTaskId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
-              />
+                className="w-full px-2 py-2 border border-slate-300 rounded text-sm"
+              >
+                <option value="">{t('scenarios.form.noTask')}</option>
+                {tasks
+                  .filter((v) => !v.retracted && v.current)
+                  .map((v) => (
+                    <option key={v.entityId} value={v.entityId}>
+                      {taskTitles.get(v.entityId)}
+                    </option>
+                  ))}
+              </select>
             </label>
             <div className="flex justify-end gap-2">
               <button
@@ -358,10 +403,14 @@ function ScenarioCard({
   view,
   onEdit,
   onRetract,
+  taskTitle,
+  onTaskClick,
 }: {
   view: ScenarioView;
   onEdit: () => void;
   onRetract: () => void;
+  taskTitle: string | null;
+  onTaskClick?: (taskId: string) => void;
 }) {
   const { t } = useTranslation();
   const p = view.lastPut?.payload as
@@ -390,7 +439,16 @@ function ScenarioCard({
       )}
       <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
         {p?.taskId && (
-          <span className="underline">{t('scenarios.linkedTask')}</span>
+          <span>
+            {t('scenarios.linkedTask')}:{' '}
+            <button
+              type="button"
+              onClick={() => onTaskClick?.(p.taskId!)}
+              className="text-indigo-600 underline"
+            >
+              {taskTitle ?? p.taskId}
+            </button>
+          </span>
         )}
         {view.conflict && (
           <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
