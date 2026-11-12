@@ -3,6 +3,33 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M16 — Logbook — HARD — done (2026-11-12)
+
+**Done:**
+- `apps/web/src/pages/Logbook.tsx`: Logbook page rendered inside the incident
+  workspace shell's "Logg" tab (wired in `IncidentDetail.tsx`, replacing the
+  coming-soon placeholder). Shows title, subtitle and placeholder content;
+  entries list and create-entry form land with the sync-engine-backed write
+  flow in later milestones.
+- `apps/web/src/pages/Logbook.test.tsx`: 2 component tests (Swedish default
+  language, like the other component tests).
+- `apps/web/src/locales/{sv,en}.json`: Added `logbook.*` keys (title, subtitle,
+  loading, createEntry, recentEntries, comingSoon, empty, placeholder).
+
+**Learned:**
+- Component tests run without auto-cleanup (`globals` not enabled in the Vitest
+  config), so DOM accumulates across tests in one file — use `getAllByText`
+  when the same key appears in more than one render.
+- Test assertions must use the default language's strings (sv) — English text
+  never matches unless the language is switched first.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` all green
+(91 shared + 57 api + 32 web tests).
+
+**Left over:** Logbook write flow (create log entry → outbox → sync) is part of
+the per-module write UI milestones; this milestone delivers the shell +
+placeholder + schema plumbing.
+
 ## M11 — Client local store — HARD — done (2026-11-11)
 
 **Done:**

@@ -1,8 +1,9 @@
 // Entity registry — plan.md §6
 //
 // Maps each EntityType to its zod payload schema. Schemas are used by the
-// server to validate record payloads on ingest. Only `log_entry` is defined
-// here; the remaining entity schemas are added in later milestones.
+// server to validate record payloads on ingest. `log_entry` (M16) and
+// `fact_item` (M17) are defined; the remaining entity schemas are added in
+// later milestones.
 
 import { EntityType } from './record.js';
 import { z } from 'zod';
@@ -23,7 +24,25 @@ const logEntrySchema = z.object({
   visibility: z.literal('incident'),
 });
 
-const entitySchemas = new Map<EntityType, z.ZodTypeAny>([[EntityType.logEntry, logEntrySchema]]);
+// fact_item — M17: verified facts with optional value/unit and validity window.
+const factItemSchema = z.object({
+  text: z.string().min(1),
+  category: z.enum(['event', 'info', 'decision', 'contact', 'other']),
+  value: z.string().optional(),
+  unit: z.string().optional(),
+  source: z.string().optional(),
+  validity: z
+    .object({
+      start: z.string().datetime(),
+      end: z.string().datetime().optional(),
+    })
+    .optional(),
+});
+
+const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
+  [EntityType.logEntry, logEntrySchema],
+  [EntityType.factItem, factItemSchema],
+]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
   return entitySchemas.get(entityType);
@@ -46,3 +65,4 @@ export function validateEntityPayload(
 }
 
 export type LogEntryPayload = z.infer<typeof logEntrySchema>;
+export type FactItemPayload = z.infer<typeof factItemSchema>;

@@ -128,5 +128,21 @@
   "incidents.header.bell": "Klocka",
   "incidents.header.elapsed": "Löptid",
   "incidents.placeholder.comingSoon": "Kommer senare",
-  "incidents.placeholder.noWriteAccess": "Du har inte behörighet att skriva här"
+  "incidents.placeholder.noWriteAccess": "Du har inte behörighet att skriva här",
+  "logbook.title": "Logg",
+  "logbook.subtitle": "Incidentens logg över händelser och noteringar",
+  "logbook.loading": "Laddar logg...",
+  "logbook.createEntry": "Skapa loggpost",
+  "logbook.recentEntries": "Senaste loggposter",
+  "logbook.comingSoon": "Loggmodulen kommer snart",
+  "logbook.empty": "Inga loggposter än.",
+  "logbook.placeholder": "Logginlägg och tidslinjehändelser visas här.",
+  "factItem.title": "Faktaposter",
+  "factItem.subtitle": "Verifierade fakta och upplysningar",
+  "factItem.comingSoon": "Faktamodulen kommer snart",
+  "factItem.placeholder": "Faktaposter och verifierade upplysningar visas här.",
+  "situationSnapshot.title": "Lägesbild",
+  "situationSnapshot.subtitle": "Aktuell situation och kontext",
+  "situationSnapshot.comingSoon": "Lägesbildsmodulen kommer snart",
+  "situationSnapshot.placeholder": "Lägesbilder och situationsöversikter visas här."
 }

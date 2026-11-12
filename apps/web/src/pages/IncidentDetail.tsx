@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.js';
 import { useParams } from 'react-router-dom';
 import { can, type Actor } from '@stabsstod/shared';
+import Logbook from './Logbook.js';
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(path, { credentials: 'include', ...init });
@@ -149,9 +150,6 @@ export default function IncidentWorkspace() {
     : null;
 
   // Permission checks using can()
-  const canWriteLogEntry = actor
-    ? can(actor, 'write', { entityType: 'log_entry', incidentId: id!, functionId: null }, {})
-    : false;
   const canWriteMission = actor
     ? can(actor, 'write', { entityType: 'mission', incidentId: id!, functionId: null }, {})
     : false;
@@ -309,21 +307,7 @@ export default function IncidentWorkspace() {
           </div>
         )}
         {activeTab === 'log' && (
-          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              {t('incidents.workspace.log')}
-            </h2>
-            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
-            {canWriteLogEntry ? (
-              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 text-sm text-blue-800">
-                Write access: log entry
-              </div>
-            ) : (
-              <div className="mt-4 p-3 bg-slate-100 rounded border border-slate-200 text-sm text-slate-500">
-                {t('incidents.placeholder.noWriteAccess')}
-              </div>
-            )}
-          </div>
+          <Logbook />
         )}
         {activeTab === 'map' && (
           <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">

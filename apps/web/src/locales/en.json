@@ -128,5 +128,21 @@
   "incidents.header.bell": "Bell",
   "incidents.header.elapsed": "Elapsed",
   "incidents.placeholder.comingSoon": "Coming soon",
-  "incidents.placeholder.noWriteAccess": "You do not have write access here"
+  "incidents.placeholder.noWriteAccess": "You do not have write access here",
+  "logbook.title": "Logbook",
+  "logbook.subtitle": "Incident log of events and notes",
+  "logbook.loading": "Loading logbook...",
+  "logbook.createEntry": "Create log entry",
+  "logbook.recentEntries": "Recent log entries",
+  "logbook.comingSoon": "Logbook module coming soon",
+  "logbook.empty": "No log entries yet.",
+  "logbook.placeholder": "Log entries and timeline events will be displayed here.",
+  "factItem.title": "Fact items",
+  "factItem.subtitle": "Verified facts and information",
+  "factItem.comingSoon": "Fact module coming soon",
+  "factItem.placeholder": "Fact items and verified information will be displayed here.",
+  "situationSnapshot.title": "Situation snapshot",
+  "situationSnapshot.subtitle": "Current situation and context",
+  "situationSnapshot.comingSoon": "Situation module coming soon",
+  "situationSnapshot.placeholder": "Situation snapshots and overviews will be displayed here."
 }
