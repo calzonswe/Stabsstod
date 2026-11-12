@@ -18,6 +18,7 @@ import Logbook from './Logbook.js';
 import FactBoard from './FactBoard.js';
 import SituationEditor from './SituationEditor.js';
 import ScenarioBoard from './ScenarioBoard.js';
+import MissionDirection from './MissionDirection.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -279,21 +280,12 @@ export default function IncidentWorkspace() {
           </>
         )}
         {activeTab === 'direction' && (
-          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              {t('incidents.workspace.direction')}
-            </h2>
-            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
-            {canWriteMission ? (
-              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 text-sm text-blue-800">
-                Write access: mission
-              </div>
-            ) : (
-              <div className="mt-4 p-3 bg-slate-100 rounded border border-slate-200 text-sm text-slate-500">
-                {t('incidents.placeholder.noWriteAccess')}
-              </div>
-            )}
-          </div>
+          <MissionDirection
+            store={localStore}
+            incidentId={id!}
+            authorId={user?.id ?? ''}
+            actor={actor}
+          />
         )}
         {activeTab === 'coordination' && (
           <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">

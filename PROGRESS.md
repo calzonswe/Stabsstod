@@ -3,6 +3,53 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M20 — Mission and direction — done (2026-11-12)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `mission` schema (`content`,
+  `staffShouldDo?`, `staffShouldNotDo?`, `deadline?`, `issuedBy`,
+  `acknowledgedByChief? {userId, at}` — set by a later version) and
+  `direction` schema (`desired` (required), `actual?`, `divergenceNote?`,
+  `validFrom`). Registered in `entitySchemas`; types exported. 8 new schema
+  tests.
+- `packages/shared/src/permissions.test.ts`: 4 M20 permission tests —
+  mission writable only by decision_maker/chief_of_staff/deputy_chief
+  (function_lead/staff/observer denied); direction writable only by
+  chief_of_staff/deputy_chief (decision_maker/function_lead denied).
+- `apps/web/src/hooks/useMissionDirection.ts`: Shared `useVersionedEntity`
+  (single entity per incident: `mission-<incidentId>` / `direction-<incidentId>`)
+  with save = new version + retract; `useMission` adds `acknowledge()` =
+  new version carrying the last payload + `acknowledgedByChief`.
+- `apps/web/src/pages/MissionDirection.tsx`: Mission editor (content,
+  staff should/should not, deadline) and acknowledge button — both gated
+  with `can()`; acknowledge shown only when `actor.role ===
+  'chief_of_staff'` and disabled until a mission exists (or already
+  acknowledged). Direction: desired (green) vs actual (blue) side by side
+  with amber divergence note; editor gated to chief/deputy. Observers see
+  read-only content only. Wired into the "Inriktning" tab.
+- `apps/web/src/pages/MissionDirection.test.tsx`: 7 tests — observer and
+  function_lead see no edit buttons (parity with `can()`); decision_maker
+  edits mission only, no acknowledge button; chief sees both editors +
+  (disabled) acknowledge; acknowledge creates a new version with
+  `acknowledgedByChief` and carried-over content; side-by-side render;
+  chief saves direction (outbox entry, all three fields).
+- `apps/web/src/locales/{sv,en}.json`: mission.* + direction.* strings.
+
+**Learned:**
+- Permission tests must wait for the async local-data load before asserting
+  on the gated UI — a synchronous query sees the loading state only.
+- A `saveVersion` builder taking (entityId, parentIds, functionId) is
+  overkill for acknowledge — a zero-arg closure suffices; unused args fail
+  the lint gate.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(127 shared + 57 api + 55 web tests).
+
+**Left over:** acknowledge-before-mission-exists could be interpreted as
+creating an empty mission — currently disabled instead (needs a UX call);
+mission history drawer not yet rendered (versions exist, drawer comes with
+later polish). Next: M21.
+
 ## M19 — Scenarios and time scales — done (2026-11-12)
 
 **Done:**

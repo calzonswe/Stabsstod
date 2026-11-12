@@ -107,11 +107,41 @@ const scenarioSchema = z.object({
   taskId: z.string().optional(),
 });
 
+// mission — M20: the mission statement. One entity per incident; a save or
+// a chief-of-staff acknowledgement is a new version. Written by
+// decision_maker / chief_of_staff / deputy_chief (permissions.ts).
+const missionSchema = z.object({
+  content: z.string().min(1),
+  staffShouldDo: z.string().optional(),
+  staffShouldNotDo: z.string().optional(),
+  deadline: z.string().datetime().optional(),
+  // Who issued the mission (userId of the decision maker).
+  issuedBy: z.string().min(1),
+  // Set by a LATER version when the chief of staff acknowledges.
+  acknowledgedByChief: z
+    .object({
+      userId: z.string(),
+      at: z.string().datetime(),
+    })
+    .optional(),
+});
+
+// direction — M20: desired vs actual direction, side by side, with an
+// optional divergence note. Written by chief_of_staff / deputy_chief only.
+const directionSchema = z.object({
+  desired: z.string().min(1),
+  actual: z.string().optional(),
+  divergenceNote: z.string().optional(),
+  validFrom: z.string().datetime(),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
   [EntityType.situationSnapshot, situationSnapshotSchema],
   [EntityType.scenario, scenarioSchema],
+  [EntityType.mission, missionSchema],
+  [EntityType.direction, directionSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -138,3 +168,5 @@ export type LogEntryPayload = z.infer<typeof logEntrySchema>;
 export type FactItemPayload = z.infer<typeof factItemSchema>;
 export type SituationSnapshotPayload = z.infer<typeof situationSnapshotSchema>;
 export type ScenarioPayload = z.infer<typeof scenarioSchema>;
+export type MissionPayload = z.infer<typeof missionSchema>;
+export type DirectionPayload = z.infer<typeof directionSchema>;

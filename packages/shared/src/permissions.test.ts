@@ -284,4 +284,43 @@ describe('can() permission matrix (plan.md §7)', () => {
       ).toBe(true);
     });
   });
+
+  describe('write — mission and direction (M20)', () => {
+    it('mission: decision_maker, chief_of_staff and deputy_chief may write', () => {
+      for (const role of ['decision_maker', 'chief_of_staff', 'deputy_chief'] as const) {
+        expect(
+          can(actor(role), 'write', record({ entityType: EntityType.mission, functionId: null }), {}),
+        ).toBe(true);
+      }
+    });
+
+    it('mission: function_lead (own function or not) and staff_member denied', () => {
+      expect(
+        can(ownFnActor('function_lead'), 'write', record({ entityType: EntityType.mission, functionId: null }), {}),
+      ).toBe(false);
+      expect(
+        can(ownFnActor('staff_member'), 'write', record({ entityType: EntityType.mission, functionId: null }), {}),
+      ).toBe(false);
+      expect(
+        can(ownFnActor('observer'), 'write', record({ entityType: EntityType.mission, functionId: null }), {}),
+      ).toBe(false);
+    });
+
+    it('direction: chief_of_staff and deputy_chief may write', () => {
+      for (const role of ['chief_of_staff', 'deputy_chief'] as const) {
+        expect(
+          can(actor(role), 'write', record({ entityType: EntityType.direction, functionId: null }), {}),
+        ).toBe(true);
+      }
+    });
+
+    it('direction: decision_maker and function_lead denied', () => {
+      expect(
+        can(actor('decision_maker'), 'write', record({ entityType: EntityType.direction, functionId: null }), {}),
+      ).toBe(false);
+      expect(
+        can(ownFnActor('function_lead'), 'write', record({ entityType: EntityType.direction, functionId: null }), {}),
+      ).toBe(false);
+    });
+  });
 });

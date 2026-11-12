@@ -11,6 +11,7 @@ export type { EntitySchema, LogEntryPayload, FactItemPayload } from './entityReg
 export { FactItemStatus, PROTECTED_VALUES } from './entityRegistry.js';
 export type { SituationSnapshotPayload } from './entityRegistry.js';
 export type { ScenarioPayload } from './entityRegistry.js';
+export type { MissionPayload, DirectionPayload } from './entityRegistry.js';
 export { ScenarioHorizon, ScenarioLikelihood } from './entityRegistry.js';
 export type { DiffLine } from './diff.js';
 export { diffLines, renderSnapshotText } from './diff.js';
