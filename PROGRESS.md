@@ -3,6 +3,52 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M18 — Situation picture — HARD — done (2026-11-12)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `situation_snapshot` schema —
+  `{ whatHappened?, current?, consequences?, fis?{fakta,innebord,slutsats},
+  protectedValues: life|health|property|environment|critical_society[] }`;
+  exported `PROTECTED_VALUES` + `SituationSnapshotPayload`. Registered in
+  `entitySchemas` so the server validates snapshot payloads on ingest.
+- `packages/shared/src/diff.ts`: Pure LCS line diff (`diffLines`) +
+  `renderSnapshotText` (flattens a snapshot payload to comparable text,
+  stable section order). 8 tests in `diff.test.ts`; replaced an invalid
+  symmetry test with a same-inputs determinism test (LCS tie-breaking is not
+  line-order symmetric).
+- `apps/web/src/hooks/useSituationSnapshots.ts`: One entityId per incident
+  (`snapshot-<incidentId>` on first save). Every save = new version with the
+  current heads as parents; "current picture" = latest version; `versions`
+  sorted oldest → newest for the history/diff UI.
+- `apps/web/src/pages/SituationEditor.tsx`: Read-only "current picture"
+  (latest version) + editor with the three sections, FIS as three steps
+  (Fakta → Innebörd → Slutsatser) and the five protected values as
+  checkboxes. Save = new version (button "Spara som ny version"). Version
+  history with from/to radio pairs renders a +/- line diff; retract with
+  reason (struck-through display keeps the last put payload). Wired into the
+  workspace "Läge" tab below FactBoard.
+- `apps/web/src/pages/SituationEditor.test.tsx`: 4 tests — empty state;
+  save creates new version with previous head as parent + current picture
+  updates; protected values round-trip; two-version diff renders added and
+  removed lines. Uses explicit `afterEach(cleanup())` so getBy* queries are
+  safe despite no global auto-cleanup.
+- `apps/web/src/locales/{sv,en}.json`: situation.* strings (sv/en parity).
+
+**Learned:**
+- Keep schemas ABOVE the `entitySchemas` map in entityRegistry.ts — inserting
+  a new const after the map that references it breaks with
+  "used before declaration"; the earlier in-place edit also duplicated the
+  map (two `entitySchemas` declarations) and had to be untangled.
+- When many tests each render a component with the same keys, per-file
+  `afterEach(cleanup())` is far less brittle than getAllByText everywhere.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(105 shared + 57 api + 42 web tests).
+
+**Left over:** diff labels show version authors, not clock times relative to
+the Stockholm 24h convention yet (HLC wall time is used); situation section
+headers don't link FIS steps to the fact board yet. Next: M19.
+
 ## M16 — Logbook — HARD — done (2026-11-12)
 
 **Done:**

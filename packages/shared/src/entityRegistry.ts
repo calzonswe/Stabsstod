@@ -1,9 +1,9 @@
 // Entity registry — plan.md §6
 //
 // Maps each EntityType to its zod payload schema. Schemas are used by the
-// server to validate record payloads on ingest. `log_entry` (M16) and
-// `fact_item` (M17) are defined; the remaining entity schemas are added in
-// later milestones.
+// server to validate record payloads on ingest. `log_entry` (M16),
+// `fact_item` (M17) and `situation_snapshot` (M18) are defined; the remaining
+// entity schemas are added in later milestones.
 
 import { EntityType } from './record.js';
 import { z } from 'zod';
@@ -45,9 +45,39 @@ const factItemSchema = z.object({
   logEntryId: z.string().optional(),
 });
 
+// situation_snapshot — M18: the current situation picture. A new save is a
+// new version of the same entity; "current picture" = the latest version.
+export const PROTECTED_VALUES = [
+  'life',
+  'health',
+  'property',
+  'environment',
+  'critical_society',
+] as const;
+
+export type ProtectedValue = (typeof PROTECTED_VALUES)[number];
+
+const situationSnapshotSchema = z.object({
+  whatHappened: z.string().optional(),
+  current: z.string().optional(),
+  consequences: z.string().optional(),
+  // FIS fields (Fakta → Innebörd → Slutsatser) as three steps.
+  fis: z
+    .object({
+      fakta: z.string().optional(),
+      innebord: z.string().optional(),
+      slutsats: z.string().optional(),
+    })
+    .optional(),
+  protectedValues: z.array(
+    z.enum(['life', 'health', 'property', 'environment', 'critical_society']),
+  ),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
+  [EntityType.situationSnapshot, situationSnapshotSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -72,3 +102,4 @@ export function validateEntityPayload(
 
 export type LogEntryPayload = z.infer<typeof logEntrySchema>;
 export type FactItemPayload = z.infer<typeof factItemSchema>;
+export type SituationSnapshotPayload = z.infer<typeof situationSnapshotSchema>;

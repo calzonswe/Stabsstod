@@ -16,6 +16,7 @@ import { useParams } from 'react-router-dom';
 import { can, type Actor } from '@stabsstod/shared';
 import Logbook from './Logbook.js';
 import FactBoard from './FactBoard.js';
+import SituationEditor from './SituationEditor.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -270,7 +271,10 @@ export default function IncidentWorkspace() {
       {/* Tab content */}
       <main className="max-w-7xl mx-auto px-4 py-4 min-h-[400px]">
         {activeTab === 'situation' && (
-          <FactBoard store={localStore} incidentId={id!} authorId={user?.id ?? ''} />
+          <>
+            <FactBoard store={localStore} incidentId={id!} authorId={user?.id ?? ''} />
+            <SituationEditor store={localStore} incidentId={id!} authorId={user?.id ?? ''} />
+          </>
         )}
         {activeTab === 'direction' && (
           <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
