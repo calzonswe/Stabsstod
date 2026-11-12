@@ -44,24 +44,6 @@ export interface RecordLike {
   mandate?: 'decision_maker' | 'delegated_chief'; // decision mandate
 }
 
-export interface RecordLike {
-  entityType: EntityType;
-  incidentId: string;
-  functionId: string | null;
-  authorId?: string;
-  status?: string; // task status (proposed, todo, doing, …)
-  mandate?: 'decision_maker' | 'delegated_chief'; // decision mandate
-}
-
-export interface RecordLike {
-  entityType: EntityType;
-  incidentId: string;
-  functionId: string | null;
-  authorId?: string;
-  status?: string; // task status (proposed, todo, doing, …)
-  mandate?: 'decision_maker' | 'delegated_chief'; // decision mandate
-}
-
 // Reserved for future context; kept for signature stability per plan.md §7.
 export type CanContext = unknown;
 

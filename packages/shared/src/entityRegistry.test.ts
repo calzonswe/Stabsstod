@@ -204,3 +204,116 @@ describe('direction payload schema', () => {
     expect(result.success).toBe(false);
   });
 });
+
+// decision_request — M21
+const decisionRequestBase = {
+  question: 'Should we upgrade the fleet management system?',
+  options: [
+    { title: 'Yes', pros: ['Better efficiency'], cons: ['Cost'] },
+    { title: 'No', pros: ['Safe'], cons: ['Delay'] },
+  ],
+  status: 'open' as const,
+};
+
+describe('decision_request payload schema', () => {
+  it('accepts a valid request with options and recommendation', () => {
+    const result = validateEntityPayload(EntityType.decisionRequest, {
+      ...decisionRequestBase,
+      recommendation: 'Proceed with vendor A',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts neededBy (functionId)', () => {
+    const result = validateEntityPayload(EntityType.decisionRequest, {
+      ...decisionRequestBase,
+      neededBy: 'fn-logistics',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects empty question', () => {
+    const result = validateEntityPayload(EntityType.decisionRequest, {
+      ...decisionRequestBase,
+      question: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing options', () => {
+    const result = validateEntityPayload(EntityType.decisionRequest, {
+      question: 'Q',
+      status: 'open',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unknown status', () => {
+    const result = validateEntityPayload(EntityType.decisionRequest, {
+      ...decisionRequestBase,
+      status: 'pending' as const,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// decision — M21
+const decisionBase = {
+  requestId: 'dr-123',
+  text: 'Upgrade fleet management system',
+  decidedByUserId: 'user-dm-1',
+  decidedAt: new Date().toISOString(),
+  mandate: 'decision_maker' as const,
+};
+
+describe('decision payload schema', () => {
+  it('accepts a valid decision with all fields', () => {
+    const result = validateEntityPayload(EntityType.decision, {
+      ...decisionBase,
+      rationale: 'Current system failing',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts without rationale', () => {
+    const result = validateEntityPayload(EntityType.decision, decisionBase);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects empty text', () => {
+    const result = validateEntityPayload(EntityType.decision, {
+      ...decisionBase,
+      text: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts without requestId (optional per plan.md §6)', () => {
+    const result = validateEntityPayload(EntityType.decision, {
+      text: 'Something',
+      decidedByUserId: 'u',
+      decidedAt: new Date().toISOString(),
+      mandate: 'decision_maker',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects empty requestId', () => {
+    const result = validateEntityPayload(EntityType.decision, {
+      requestId: '',
+      text: 'Something',
+      decidedByUserId: 'u',
+      decidedAt: new Date().toISOString(),
+      mandate: 'decision_maker',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unknown mandate', () => {
+    const result = validateEntityPayload(EntityType.decision, {
+      ...decisionBase,
+      mandate: 'ceo' as const,
+    });
+    expect(result.success).toBe(false);
+  });
+});

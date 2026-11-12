@@ -135,6 +135,41 @@ const directionSchema = z.object({
   validFrom: z.string().datetime(),
 });
 
+// decision_request — M21: request with options (pros/cons) and recommendation.
+const decisionRequestSchema = z.object({
+  question: z.string().min(1),
+  background: z.string().optional(),
+  options: z.array(
+    z.object({
+      title: z.string().min(1),
+      pros: z.array(z.string()).min(1),
+      cons: z.array(z.string()).min(1),
+    }),
+  ).min(1),
+  recommendation: z.string().optional(),
+  // Who is needed to decide this (functionId of the decision_maker).
+  neededBy: z.string().optional(),
+  // Status: open, decided, withdrawn.
+  status: z.enum(['open', 'decided', 'withdrawn']),
+});
+
+// decision — M21: decision maker records the outcome of a decision request.
+const decisionSchema = z.object({
+  // Optional link to the decision_request entity (plan.md §6: requestId?).
+  requestId: z.string().min(1).optional(),
+  // The final decision text.
+  text: z.string().min(1),
+  // Rationale behind the decision.
+  rationale: z.string().optional(),
+  // Who decided (decision_maker or chief with delegated mandate).
+  decidedByUserId: z.string(),
+  // When the decision was made.
+  decidedAt: z.string().datetime(),
+  // Mandate: decision_maker or delegated_chief (from permissions.ts).
+  mandate: z.enum(['decision_maker', 'delegated_chief']),
+});
+
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -142,6 +177,8 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.scenario, scenarioSchema],
   [EntityType.mission, missionSchema],
   [EntityType.direction, directionSchema],
+  [EntityType.decisionRequest, decisionRequestSchema],
+  [EntityType.decision, decisionSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -170,3 +207,5 @@ export type SituationSnapshotPayload = z.infer<typeof situationSnapshotSchema>;
 export type ScenarioPayload = z.infer<typeof scenarioSchema>;
 export type MissionPayload = z.infer<typeof missionSchema>;
 export type DirectionPayload = z.infer<typeof directionSchema>;
+export type DecisionRequestPayload = z.infer<typeof decisionRequestSchema>;
+export type DecisionPayload = z.infer<typeof decisionSchema>;

@@ -3,6 +3,67 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M21 — Decisions — done (2026-11-12)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `decision_request` schema
+  (`question`, `background?`, `options[] {title, pros[], cons[]}`,
+  `recommendation?`, `neededBy?`, `status: open|decided|withdrawn`) and
+  `decision` schema (`requestId?` (optional per plan §6), `text`,
+  `rationale?`, `decidedByUserId`, `decidedAt`, `mandate:
+  decision_maker|delegated_chief`). Registered in `entitySchemas`; payload
+  types exported. 11 new shared schema tests (options/recommendation,
+  neededBy, status enum, empty question rejected, optional requestId,
+  empty requestId rejected, mandate enum).
+- `packages/shared/src/permissions.ts`: `decision` write rule —
+  `decision_maker` always; `chief_of_staff` only with
+  `mandate = delegated_chief`; everyone else denied. `decision_request`
+  falls through to the own-function default rule. (Permission tests from
+  the M21 schema work; matrix rows verified in permissions.test.ts.)
+- `apps/web/src/hooks/useDecisions.ts`: list-style hook (same offline-first
+  flow as useScenarios) — requests + decisions materialized per incident;
+  `createRequest`/`editRequest` (new version), `withdrawRequest` (new
+  version with status `withdrawn`), `recordDecision` = new request version
+  (status → `decided`) **plus** a new `decision` record linked via
+  `requestId`, `retractRequest` with reason.
+- `apps/web/src/pages/Decisions.tsx`: third module of the "Inriktning" tab
+  (plan §3: Inriktning = mission, direction, decision requests, decisions).
+  Request form (question, background, options with pros/cons one per line,
+  recommendation) + public-record reminder (plan §2.7); list with status
+  filters (all/open/decided/withdrawn); decision form shown only when
+  `can()` allows (decision maker, or chief with delegated mandate);
+  withdraw for own-function writers; links to the log and to tasks/staff
+  work plan (plan §10 M21).
+- `apps/web/src/pages/Decisions.test.tsx`: 8 tests — observer sees no
+  write buttons; function_lead writes requests but not decisions;
+  decision_maker and chief see the decision form; recording a decision
+  writes a new request version (status decided, parent = previous head)
+  and a decision record with requestId + mandate; withdraw writes a new
+  version with status withdrawn; status filter; create-request form
+  writes a `decision_request` record with parsed options.
+- `apps/web/src/locales/{sv,en}.json`: decisions.* strings (parity test).
+- Repairs found while completing M21: `directionSchema` missing from
+  entityRegistry.ts (referenced by registry row + `DirectionPayload`
+  export) — restored; `entityRegistry.test.ts` used `require()` in an ESM
+  test (1 file failed to load, 20 tests never ran) — switched to imports;
+  triple-declared `RecordLike` in permissions.ts — deduplicated.
+
+**Learned:**
+- `pnpm -r test` stops at the first failing package — a broken shared test
+  file hid all api/web failures behind it. Always read the unfiltered gate
+  output.
+- The plan's `requestId?` on `decision` is optional; a decision can stand
+  alone (e.g. recorded orally in the log). Kept `min(1)` so empty-string
+  links are still rejected.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(138 shared + 57 api + 63 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19
+scenario cards lack ConflictBanner and `taskId` stays a plain id until M22;
+M20 acknowledge disabled until a mission exists, mission history drawer not
+rendered. Next: M22 (Tasks and staff work plan).
+
 ## M20 — Mission and direction — done (2026-11-12)
 
 **Done:**

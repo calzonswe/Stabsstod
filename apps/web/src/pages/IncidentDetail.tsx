@@ -19,6 +19,7 @@ import FactBoard from './FactBoard.js';
 import SituationEditor from './SituationEditor.js';
 import ScenarioBoard from './ScenarioBoard.js';
 import MissionDirection from './MissionDirection.js';
+import Decisions from './Decisions.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -280,12 +281,21 @@ export default function IncidentWorkspace() {
           </>
         )}
         {activeTab === 'direction' && (
-          <MissionDirection
-            store={localStore}
-            incidentId={id!}
-            authorId={user?.id ?? ''}
-            actor={actor}
-          />
+          <>
+            <MissionDirection
+              store={localStore}
+              incidentId={id!}
+              authorId={user?.id ?? ''}
+              actor={actor}
+            />
+            <Decisions
+              store={localStore}
+              incidentId={id!}
+              authorId={user?.id ?? ''}
+              actor={actor}
+              onNavigate={(tab) => setActiveTab(tab)}
+            />
+          </>
         )}
         {activeTab === 'coordination' && (
           <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
