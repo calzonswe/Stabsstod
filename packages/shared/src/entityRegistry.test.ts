@@ -822,3 +822,70 @@ describe('resource payload schema', () => {
     ).toBe(true);
   });
 });
+
+// attachment — M28
+const attachmentBase = {
+  filename: 'rapport.pdf',
+  mime: 'application/pdf',
+  size: 12345,
+  hash: 'a'.repeat(64), // sha256 hex
+  linkedEntityIds: ['entity-1', 'entity-2'],
+};
+
+describe('attachment payload schema', () => {
+  it('accepts a valid attachment with image, document or other mime', () => {
+    for (const mime of [
+      'image/jpeg',
+      'image/png',
+      'application/pdf',
+      'text/plain',
+    ]) {
+      expect(
+        validateEntityPayload(EntityType.attachment, {
+          ...attachmentBase,
+          mime,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('rejects missing filename, mime, size, hash or linkedEntityIds', () => {
+    const missingFilename: Record<string, unknown> = { ...attachmentBase };
+    delete missingFilename.filename;
+    expect(
+      validateEntityPayload(EntityType.attachment, missingFilename).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.attachment, {
+        ...attachmentBase,
+        filename: '',
+        mime: '',
+        size: -1,
+        hash: '',
+        linkedEntityIds: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.attachment, {
+        ...attachmentBase,
+        size: 1.5,
+      }).success,
+    ).toBe(false);
+    // linkedEntityIds must be non-empty (an attachment must link to something).
+    expect(
+      validateEntityPayload(EntityType.attachment, {
+        ...attachmentBase,
+        linkedEntityIds: [''],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a single linked entity', () => {
+    expect(
+      validateEntityPayload(EntityType.attachment, {
+        ...attachmentBase,
+        linkedEntityIds: ['entity-1'],
+      }).success,
+    ).toBe(true);
+  });
+});

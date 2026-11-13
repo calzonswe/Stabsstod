@@ -23,6 +23,7 @@ import Decisions from './Decisions.js';
 import Tasks from './Tasks.js';
 import Timeline from './Timeline.js';
 import Actors from './Actors.js';
+import Attachments from './Attachments.js';
 import Briefings from './Briefings.js';
 import Resources from './Resources.js';
 import Shifts from './Shifts.js';
@@ -370,6 +371,12 @@ export default function IncidentWorkspace() {
               actor={actor}
               functions={functions}
               members={members}
+            />
+            <Attachments
+              store={localStore}
+              incidentId={id!}
+              authorId={user?.id ?? ''}
+              actor={actor}
             />
           </div>
         )}

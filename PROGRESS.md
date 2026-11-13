@@ -3,6 +3,62 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M28 — Attachments — done (2026-11-13)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `attachment` schema (`filename` min 1,
+  `mime` min 1, `size` int≥0, `hash` min 1 sha256 hex, `linkedEntityIds[]`).
+  `AttachmentPayload` type; registered `[EntityType.attachment, attachmentSchema]`
+  in `entitySchemas`. 4 new shared schema tests.
+- `packages/shared/src/index.ts`: exports `AttachmentPayload`.
+- `apps/api/src/attachments.ts` (new): `POST /api/attachments` (multipart upload;
+  client-computed sha256 verified server-side via `crypto.createHash`; size limit
+  from `MAX_UPLOAD_MB` config; stored at `ATTACHMENTS_DIR/<hash>`), and
+  `GET /api/attachments/:hash` (session + incident membership check via
+  attachment records in the `records` table; serves file with correct MIME and
+  `Content-Disposition`). Uses Fastify's `addContentTypeParser` for
+  `multipart/form-data` (avoids `@fastify/multipart` inject incompatibility).
+- `apps/api/src/attachments.test.ts` (new): 9 API tests — correct hash accepted,
+  wrong hash rejected (400), missing hash rejected (400), oversized file rejected
+  (413), unauthenticated rejected (401), non-member download denied (403),
+  member download allowed (200 + correct content), missing file → 404.
+- `apps/api/src/app.ts`: registered `registerAttachments`.
+- `docker-compose.yml`: added `ATTACHMENTS_DIR` env var and `attachments` volume
+  mount for the api service.
+- `apps/web/src/hooks/useAttachments.ts` (new): offline-first hook. Computes
+  sha256 via `crypto.subtle.digest`, queues bytes in Dexie `blobs`, creates
+  versioned `attachment` record, exposes `addAttachment`, `getAttachmentBytes`,
+  `uploadPending` (POST to `/api/attachments` with multipart form), `retractAttachment`.
+  Upload status tracked per hash (pending/uploading/uploaded/failed).
+- `apps/web/src/pages/Attachments.tsx` (new): upload form (file input with
+  `accept="image/*" capture`, linked entities field, image preview), attachment
+  table with status badges, download/preview/retract actions, retry button.
+- `apps/web/src/pages/IncidentDetail.tsx`: wired `<Attachments .../>` after
+  `<Resources>` in the Stab tab.
+- `apps/web/src/locales/{sv,en}.json`: `attachments.*` keys (25 lines, parity
+  test enforces identical key sets).
+- `apps/web/src/pages/Attachments.test.tsx` (new): 4 client tests — add
+  attachment offline (bytes in blobs + record created), upload called exactly
+  once on reconnect (idempotent), failed upload kept for retry,
+  `getAttachmentBytes` returns queued bytes.
+
+**Learned:**
+- `@fastify/multipart` v10's `req.formData()`/`req.parts()` is incompatible with
+  Fastify's `inject` in tests (returns 500). Use `app.addContentTypeParser()`
+  with `parseAs: 'buffer'` and manual multipart parsing instead.
+- `crypto.subtle.digest` is available in Node 22+ and browsers; no fallback
+  needed for the test target.
+- `TextEncoder().encode().buffer` may include padding beyond the encoded
+  content; pass the `Uint8Array` directly to `crypto.subtle.digest`.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(224 shared + 66 api + 111 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19 scenario
+cards show a plain conflict badge only (no full ConflictBanner/merge UI); M20
+acknowledge disabled until a mission exists, mission history drawer not rendered.
+Next: M29 (Map base — HARD).
+
 ## M27 — Resources, staffing, logistics — done (2026-11-13)
 
 **Done:**

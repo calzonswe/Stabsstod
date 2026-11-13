@@ -448,6 +448,25 @@ const resourceSchema = z.object({
   notes: z.string().optional(),
 });
 
+// attachment — M28: files attached to any entity. `hash` is the sha256 of
+// the file content (computed client-side, verified server-side).
+// `linkedEntityIds` lists the entities this attachment is attached to.
+export const AttachmentType = {
+  image: 'image',
+  document: 'document',
+  other: 'other',
+} as const;
+
+export type AttachmentType = (typeof AttachmentType)[keyof typeof AttachmentType];
+
+const attachmentSchema = z.object({
+  filename: z.string().min(1),
+  mime: z.string().min(1),
+  size: z.number().int().min(0),
+  hash: z.string().min(1),
+  linkedEntityIds: z.array(z.string().min(1)),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -465,6 +484,7 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.handoverNote, handoverNoteSchema],
   [EntityType.actor, actorSchema],
   [EntityType.resource, resourceSchema],
+  [EntityType.attachment, attachmentSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -504,3 +524,4 @@ export type HandoverNotePayload = z.infer<typeof handoverNoteSchema>;
 export type ActorRelation = z.infer<typeof actorRelationSchema>;
 export type ActorPayload = z.infer<typeof actorSchema>;
 export type ResourcePayload = z.infer<typeof resourceSchema>;
+export type AttachmentPayload = z.infer<typeof attachmentSchema>;
