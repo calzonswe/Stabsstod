@@ -304,6 +304,54 @@ const briefingReportSchema = z.object({
   collaborationNeeds: z.string(),
 });
 
+// shift — M25: a staff shift (avläsning) — user `userId` is on duty in
+// function `functionId` between `start` and `end`, holding incident role
+// `role` while on the shift (e.g. acting as function lead). The record's
+// `functionId` is the shift's function. Handbook rules checked by the
+// warnings in shifts.ts: max 8 h per shift, 30–60 min overlap for handover.
+export const ShiftRole = {
+  chiefOfStaff: 'chief_of_staff',
+  deputyChief: 'deputy_chief',
+  functionLead: 'function_lead',
+  staffMember: 'staff_member',
+  decisionMaker: 'decision_maker',
+  observer: 'observer',
+} as const;
+
+export type ShiftRole = (typeof ShiftRole)[keyof typeof ShiftRole];
+
+const shiftSchema = z
+  .object({
+    functionId: z.string().min(1),
+    userId: z.string().min(1),
+    start: z.string().datetime(),
+    end: z.string().datetime(),
+    role: z.enum([
+      'chief_of_staff',
+      'deputy_chief',
+      'function_lead',
+      'staff_member',
+      'decision_maker',
+      'observer',
+    ]),
+  })
+  .refine((s) => Date.parse(s.end) > Date.parse(s.start), {
+    message: 'end must be after start',
+  });
+
+// handover_note — M25: what the person going off duty wants handed over
+// ("most important to hand over"). Written by the outgoing person
+// (fromUserId) or chief/deputy; the record's `functionId` is the function
+// being handed over. One note = one record (append-only).
+const handoverNoteSchema = z.object({
+  // The shift being handed over (optional — notes may stand alone).
+  shiftId: z.string().min(1).optional(),
+  fromUserId: z.string().min(1),
+  // The person taking over (defaults to whoever's next shift follows).
+  toUserId: z.string().min(1).optional(),
+  text: z.string().min(1),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -317,6 +365,8 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.timelineEvent, timelineEventSchema],
   [EntityType.briefing, briefingSchema],
   [EntityType.briefingReport, briefingReportSchema],
+  [EntityType.shift, shiftSchema],
+  [EntityType.handoverNote, handoverNoteSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -351,3 +401,5 @@ export type DecisionPayload = z.infer<typeof decisionSchema>;
 export type TimelineEventPayload = z.infer<typeof timelineEventSchema>;
 export type BriefingPayload = z.infer<typeof briefingSchema>;
 export type BriefingReportPayload = z.infer<typeof briefingReportSchema>;
+export type ShiftPayload = z.infer<typeof shiftSchema>;
+export type HandoverNotePayload = z.infer<typeof handoverNoteSchema>;

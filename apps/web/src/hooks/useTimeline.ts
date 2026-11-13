@@ -14,9 +14,11 @@ import {
   taskDeadlineItems,
   decisionTimelineItems,
   briefingTimelineItems,
+  shiftTimelineItems,
   type BriefingPayload,
   type DecisionPayload,
   type RecordEnvelope,
+  type ShiftPayload,
   type TaskPayload,
   type TimelineEventPayload,
   type TimelineItem,
@@ -43,6 +45,7 @@ interface TimelineData {
   tasks: { entityId: string; payload: TaskPayload }[];
   decisions: { entityId: string; payload: DecisionPayload }[];
   briefings: { entityId: string; payload: BriefingPayload }[];
+  shifts: { entityId: string; payload: ShiftPayload }[];
 }
 
 export interface UseTimelineResult {
@@ -60,7 +63,7 @@ export function useTimeline(
   incidentId: string,
   authorId: string,
 ): UseTimelineResult {
-  const [data, setData] = useState<TimelineData>({ events: [], tasks: [], decisions: [], briefings: [] });
+  const [data, setData] = useState<TimelineData>({ events: [], tasks: [], decisions: [], briefings: [], shifts: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -116,7 +119,15 @@ export function useTimeline(
             : null;
         })
         .filter((e): e is NonNullable<typeof e> => e !== null);
-      setData({ events, tasks, decisions, briefings });
+      const shifts = [...byEntity('shift').entries()]
+        .map(([entityId, recs]) => {
+          const mat = materializeOne(recs, entityId);
+          return mat && !mat.retracted && mat.current
+            ? { entityId, payload: mat.current.payload as ShiftPayload }
+            : null;
+        })
+        .filter((e): e is NonNullable<typeof e> => e !== null);
+      setData({ events, tasks, decisions, briefings, shifts });
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed to load timeline');
@@ -146,6 +157,8 @@ export function useTimeline(
         briefings: briefingTimelineItems(data.briefings, {
           horizonEnd: new Date(Date.now() + 30 * 86_400_000).toISOString(),
         }),
+        // Shifts are finite (start–end), so no horizon is needed.
+        shifts: shiftTimelineItems(data.shifts),
       }),
     [data],
   );

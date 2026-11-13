@@ -11,6 +11,7 @@
 import type {
   BriefingPayload,
   DecisionPayload,
+  ShiftPayload,
   TaskPayload,
   TimelineEventPayload,
   TimelineEventScope,
@@ -136,6 +137,29 @@ export function briefingTimelineItems(
     }
   }
   return items;
+}
+
+/**
+ * Shifts (M25): every shift becomes one item spanning the whole shift
+ * (`time` = start, `endTime` = end), so the planner's handovers are visible
+ * in the timeline next to briefings and deadlines. Shifts are finite, so no
+ * horizon options are needed.
+ */
+export function shiftTimelineItems(
+  shifts: { entityId: string; payload: ShiftPayload }[],
+): TimelineItem[] {
+  return shifts.map((s) => ({
+    id: `shift:${s.entityId}`,
+    source: 'shift',
+    // The role the user holds while on the shift — the readable label is
+    // resolved by the UI (shiftRoleLabel / locale).
+    title: s.payload.role,
+    time: s.payload.start,
+    endTime: s.payload.end,
+    type: 'other',
+    scope: 'internal',
+    refEntityId: s.entityId,
+  }));
 }
 
 /**

@@ -534,3 +534,104 @@ describe('briefing_report payload schema', () => {
     ).toBe(false);
   });
 });
+
+// shift / handover_note — M25
+const shiftBase = {
+  functionId: 'fn-1',
+  userId: 'user-a',
+  start: '2026-11-12T08:00:00Z',
+  end: '2026-11-12T16:00:00Z',
+  role: 'function_lead',
+};
+
+describe('shift payload schema', () => {
+  it('accepts a valid shift in every role', () => {
+    const roles = [
+      'chief_of_staff',
+      'deputy_chief',
+      'function_lead',
+      'staff_member',
+      'decision_maker',
+      'observer',
+    ] as const;
+    for (const role of roles) {
+      expect(
+        validateEntityPayload(EntityType.shift, { ...shiftBase, role }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('rejects a shift where end is not after start', () => {
+    // Equal end is rejected (the shift must have a positive length).
+    expect(
+      validateEntityPayload(EntityType.shift, {
+        ...shiftBase,
+        end: '2026-11-12T08:00:00Z',
+      }).success,
+    ).toBe(false);
+    // End before start is rejected too.
+    expect(
+      validateEntityPayload(EntityType.shift, {
+        ...shiftBase,
+        start: '2026-11-12T16:00:00Z',
+        end: '2026-11-12T08:00:00Z',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects missing or empty fields', () => {
+    const missingUser: Record<string, unknown> = { ...shiftBase };
+    delete missingUser.userId;
+    expect(validateEntityPayload(EntityType.shift, missingUser).success).toBe(
+      false,
+    );
+    expect(
+      validateEntityPayload(EntityType.shift, { ...shiftBase, functionId: '' }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.shift, {
+        ...shiftBase,
+        start: '2026-11-12 08:00:00',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a bad role', () => {
+    expect(
+      validateEntityPayload(EntityType.shift, { ...shiftBase, role: 'boss' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('handover_note payload schema', () => {
+  it('accepts a note, with and without shiftId/toUserId', () => {
+    expect(
+      validateEntityPayload(EntityType.handoverNote, {
+        shiftId: 'shift-1',
+        fromUserId: 'user-a',
+        toUserId: 'user-b',
+        text: 'Varning för provrörelser',
+      }).success,
+    ).toBe(true);
+    expect(
+      validateEntityPayload(EntityType.handoverNote, {
+        fromUserId: 'user-a',
+        text: 'Standaröverlämning',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects an empty text or a missing fromUserId', () => {
+    expect(
+      validateEntityPayload(EntityType.handoverNote, {
+        fromUserId: 'user-a',
+        text: '',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.handoverNote, {
+        text: 'Hej',
+      }).success,
+    ).toBe(false);
+  });
+});

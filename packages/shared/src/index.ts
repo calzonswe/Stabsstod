@@ -20,10 +20,13 @@ export type {
   TimelineEventPayload,
   BriefingPayload,
   BriefingReportPayload,
+  ShiftPayload,
+  HandoverNotePayload,
 } from './entityRegistry.js';
 export { TaskStatus, TaskPriority, TaskReportForm } from './entityRegistry.js';
 export { TimelineEventType, TimelineEventScope } from './entityRegistry.js';
 export { BriefingKind, BriefingStatus, BriefingRecurrenceSchema } from './entityRegistry.js';
+export { ShiftRole } from './entityRegistry.js';
 export type { BriefingRecurrence } from './entityRegistry.js';
 export type { TaskLike } from './tasks.js';
 export { isTaskOverdue, groupTasksByStatus, TASK_STATUS_ORDER, TERMINAL_TASK_STATUSES } from './tasks.js';
@@ -33,8 +36,20 @@ export {
   taskDeadlineItems,
   decisionTimelineItems,
   briefingTimelineItems,
+  shiftTimelineItems,
   deriveTimelineItems,
 } from './timeline.js';
+export type { ShiftInfo, ShiftWarning } from './shifts.js';
+export {
+  MAX_SHIFT_HOURS,
+  MIN_HANDOVER_OVERLAP_MS,
+  shiftIsTooLong,
+  insufficientOverlapWarnings,
+  chiefDecisionMakerChangingAtOnce,
+  wholeFunctionChangingAtOnce,
+  collectShiftWarnings,
+  onDutyNow,
+} from './shifts.js';
 export type { OccurrenceOptions, NextBriefing } from './briefings.js';
 export { briefingOccurrences, nextBriefingTime } from './briefings.js';
 export type { DiffLine } from './diff.js';

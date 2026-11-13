@@ -11,6 +11,7 @@ import {
   taskDeadlineItems,
   decisionTimelineItems,
   briefingTimelineItems,
+  shiftTimelineItems,
   type TimelineItem,
 } from './timeline.js';
 import type {
@@ -18,6 +19,7 @@ import type {
   DecisionPayload,
   TimelineEventPayload,
   BriefingPayload,
+  ShiftPayload,
 } from './entityRegistry.js';
 
 const eventBase: TimelineEventPayload = {
@@ -221,5 +223,82 @@ describe('briefingTimelineItems', () => {
       { entityId: 'b-4', payload: { ...briefingBase, status: 'held' } },
     ]);
     expect(items).toHaveLength(1);
+  });
+});
+
+// shiftTimelineItems — M25
+const shiftBase: ShiftPayload = {
+  functionId: 'fn-1',
+  userId: 'user-a',
+  start: '2026-11-12T08:00:00Z',
+  end: '2026-11-12T16:00:00Z',
+  role: 'function_lead',
+};
+
+describe('shiftTimelineItems', () => {
+  it('a shift becomes one item spanning the whole shift', () => {
+    const items = shiftTimelineItems([
+      { entityId: 'sh-1', payload: shiftBase },
+    ]);
+    expect(items).toEqual([
+      {
+        id: 'shift:sh-1',
+        source: 'shift',
+        title: 'function_lead',
+        time: '2026-11-12T08:00:00Z',
+        endTime: '2026-11-12T16:00:00Z',
+        type: 'other',
+        scope: 'internal',
+        refEntityId: 'sh-1',
+      },
+    ]);
+  });
+
+  it('multiple shifts keep their own ids and spans', () => {
+    const items = shiftTimelineItems([
+      { entityId: 'sh-1', payload: shiftBase },
+      {
+        entityId: 'sh-2',
+        payload: {
+          ...shiftBase,
+          userId: 'user-b',
+          start: '2026-11-12T15:30:00Z',
+          end: '2026-11-13T00:00:00Z',
+        },
+      },
+    ]);
+    expect(items.map((i) => i.id)).toEqual(['shift:sh-1', 'shift:sh-2']);
+    expect(items.map((i) => i.time)).toEqual([
+      '2026-11-12T08:00:00Z',
+      '2026-11-12T15:30:00Z',
+    ]);
+    expect(items.map((i) => i.endTime)).toEqual([
+      '2026-11-12T16:00:00Z',
+      '2026-11-13T00:00:00Z',
+    ]);
+  });
+
+  it('shift items merge via deriveTimelineItems alongside other sources', () => {
+    const items = deriveTimelineItems({
+      manual: [],
+      shifts: shiftTimelineItems([{ entityId: 'sh-1', payload: shiftBase }]),
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0].source).toBe('shift');
+    // Sorted before/after other sources by time: a later manual event comes last.
+    const withLater = deriveTimelineItems({
+      manual: [
+        {
+          id: 'manual:e-1',
+          source: 'manual',
+          title: 'Senare händelse',
+          time: '2026-11-13T00:00:00Z',
+          type: 'other',
+          scope: 'internal',
+        },
+      ],
+      shifts: shiftTimelineItems([{ entityId: 'sh-1', payload: shiftBase }]),
+    });
+    expect(withLater.map((i) => i.id)).toEqual(['shift:sh-1', 'manual:e-1']);
   });
 });

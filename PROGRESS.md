@@ -3,6 +3,86 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M25 — Shifts and handovers — done (2026-11-13)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `shift` schema (`functionId`,
+  `userId`, `start`, `end` ISO with a `.refine` that `end` is after `start` —
+  the first schema to use `.refine`), `role: chief_of_staff|deputy_chief|
+  function_lead|staff_member|decision_maker|observer` (the incident role held
+  while on the shift) and `handover_note` schema (`shiftId?`, `fromUserId`,
+  `toUserId?`, `text`). `ShiftRole` const and `ShiftPayload` /
+  `HandoverNotePayload` types exported; registered in `entitySchemas`. 6 new
+  shared schema tests.
+- `packages/shared/src/shifts.ts` (new, pure): the advisory, non-blocking
+  roster warnings from plan §10 M25, each a pure function over shift infos
+  (`{functionId, userId, start, end, role}`): `shiftIsTooLong`
+  (`MAX_SHIFT_HOURS = 8`, exactly 8 h is OK); `insufficientOverlapWarnings`
+  (per function, consecutive shifts by start; `overlapMs = min(ends) −
+  max(starts)`, warns when under `MIN_HANDOVER_OVERLAP_MS` = 30 min, gap =
+  negative `overlapMs`); `chiefDecisionMakerChangingAtOnce` (a role "changes"
+  at every start AND end of its shifts; warns for each time in both the
+  chief_of_staff and decision_maker change sets);
+  `wholeFunctionChangingAtOnce` (per function, times at which EVERY user
+  having a shift in that function has a shift starting or ending there);
+  `onDutyNow` (both boundaries inclusive, sorted by function/start/user) and
+  `collectShiftWarnings` (union, sorted by time then kind). 19 new tests —
+  the acceptance's "pure functions for each warning with tests".
+- `packages/shared/src/timeline.ts`: `shiftTimelineItems` — every shift
+  becomes one item spanning the whole shift (`time` = start, `endTime` =
+  end); shifts are finite, so no horizon options. 3 new tests;
+  `useTimeline` now feeds the shifts source.
+- `packages/shared/src/permissions.ts`: **no change** — `shift` write is
+  already `CHIEF_DEPUTY_WRITE` (chief/deputy only) and `handover_note` has an
+  explicit `canWrite` case (default rule: members of that function,
+  chief/deputy any); retract = author or chief/deputy, already in `can()`.
+- `apps/web/src/hooks/useShifts.ts` (new): same offline-first flow —
+  loads/materializes `shift` + `handover_note` entities, exposes
+  `createShift` (record `functionId` = the shift's function),
+  `retractShift` (retract record with reason, parents = heads),
+  `addNote(draft, functionId)` and `retractNote`. No edit — a correction is a
+  retract + a new shift (append-only).
+- `apps/web/src/pages/Shifts.tsx` (new): wired into the "Stab" tab after
+  `Briefings` in `IncidentDetail.tsx`. Live "I tjänst nu" section (30 s
+  tick), amber warnings panel (all four kinds, translated labels + details),
+  schedule form (chief/deputy only: function, user, role, start, end, with
+  required/end-after-start validation), roster grid per function (shifts by
+  start, Stockholm 24h, per-row retract-with-reason for chief/deputy), and
+  handover notes per function (newest first; a note may link a shift and
+  name the person taking over; form shown where `can()` allows).
+- `apps/web/src/pages/Shifts.test.tsx` (new): 8 tests — chief schedules a
+  shift (record `functionId` = fn-1, payload role, TZ-safe start/end);
+  staff member sees the roster, no schedule form, no retract, note form for
+  fn-1 only; warnings panel shows the 9 h shift and the 15-min overlap;
+  "on duty now" lists exactly the shifts covering now; staff member saves a
+  note for fn-1 (`fromUserId` = self, `parentIds: []`); chief links a note to
+  a shift + to-user and it renders first (newest-first, older seeded note
+  second); chief retracts a shift with a reason (retract record,
+  `parentIds: [put.id]`, row gone); observer sees roster/notes but no write
+  UI at all.
+- `apps/web/src/locales/{sv,en}.json`: `shifts.*` strings (parity test).
+
+**Learned:**
+- Back-to-back shifts (a ends T, b starts T) DO satisfy "all members of the
+  function change at T" — both users change at T — so
+  `wholeFunctionChangingAtOnce` warns at T by design, and it double-warns
+  with the overlap warning for a zero-overlap handover (accepted, both are
+  advisory). Test data for "no warning when someone stays on" must stagger
+  the start times.
+- Always double-check test-shift durations against the 8 h cap — 12:00–
+  00:00 (12 h) and 15:30–00:00 (8.5 h) both slipped past and added
+  unexpected `shift_over_8h` warnings.
+- `shiftSchema` is the first entity schema using zod `.refine` — a cross-field
+  rule (`end > start`) that plain `.string().datetime()` cannot express.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(212 shared + 57 api + 93 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19
+scenario cards show a plain conflict badge only (no full ConflictBanner /
+merge UI); M20 acknowledge disabled until a mission exists, mission history
+drawer not rendered. Next: M26 (Actor analysis).
+
 ## M24 — Staff briefings — done (2026-11-13)
 
 **Done:**

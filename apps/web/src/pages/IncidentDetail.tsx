@@ -23,6 +23,7 @@ import Decisions from './Decisions.js';
 import Tasks from './Tasks.js';
 import Timeline from './Timeline.js';
 import Briefings from './Briefings.js';
+import Shifts from './Shifts.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -345,6 +346,14 @@ export default function IncidentWorkspace() {
               authorId={user?.id ?? ''}
               actor={actor}
               functions={functions}
+            />
+            <Shifts
+              store={localStore}
+              incidentId={id!}
+              authorId={user?.id ?? ''}
+              actor={actor}
+              functions={functions}
+              members={members}
             />
           </div>
         )}
