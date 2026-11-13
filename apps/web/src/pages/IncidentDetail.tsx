@@ -22,6 +22,7 @@ import MissionDirection from './MissionDirection.js';
 import Decisions from './Decisions.js';
 import Tasks from './Tasks.js';
 import Timeline from './Timeline.js';
+import Briefings from './Briefings.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -166,9 +167,7 @@ export default function IncidentWorkspace() {
   const canWriteMission = actor
     ? can(actor, 'write', { entityType: 'mission', incidentId: id!, functionId: null }, {})
     : false;
-  const canWriteBriefing = actor
-    ? can(actor, 'write', { entityType: 'briefing', incidentId: id!, functionId: null }, {})
-    : false;
+
 
   const isChiefOrDeputy = incident?.role === 'chief_of_staff' || incident?.role === 'deputy_chief';
   const isAdmin = user?.role === 'admin';
@@ -340,16 +339,13 @@ export default function IncidentWorkspace() {
             <h2 className="text-lg font-semibold text-slate-900 mb-4">
               {t('incidents.workspace.staff')}
             </h2>
-            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
-            {canWriteBriefing ? (
-              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 text-sm text-blue-800">
-                Write access: briefing
-              </div>
-            ) : (
-              <div className="mt-4 p-3 bg-slate-100 rounded border border-slate-200 text-sm text-slate-500">
-                {t('incidents.placeholder.noWriteAccess')}
-              </div>
-            )}
+            <Briefings
+              store={localStore}
+              incidentId={id!}
+              authorId={user?.id ?? ''}
+              actor={actor}
+              functions={functions}
+            />
           </div>
         )}
         {activeTab === 'reports' && (

@@ -18,9 +18,13 @@ export type {
   DecisionPayload,
   TaskPayload,
   TimelineEventPayload,
+  BriefingPayload,
+  BriefingReportPayload,
 } from './entityRegistry.js';
 export { TaskStatus, TaskPriority, TaskReportForm } from './entityRegistry.js';
 export { TimelineEventType, TimelineEventScope } from './entityRegistry.js';
+export { BriefingKind, BriefingStatus, BriefingRecurrenceSchema } from './entityRegistry.js';
+export type { BriefingRecurrence } from './entityRegistry.js';
 export type { TaskLike } from './tasks.js';
 export { isTaskOverdue, groupTasksByStatus, TASK_STATUS_ORDER, TERMINAL_TASK_STATUSES } from './tasks.js';
 export type { TimelineSource, TimelineItem, TimelineItemSources } from './timeline.js';
@@ -28,8 +32,11 @@ export {
   manualTimelineItems,
   taskDeadlineItems,
   decisionTimelineItems,
+  briefingTimelineItems,
   deriveTimelineItems,
 } from './timeline.js';
+export type { OccurrenceOptions, NextBriefing } from './briefings.js';
+export { briefingOccurrences, nextBriefingTime } from './briefings.js';
 export type { DiffLine } from './diff.js';
 export { diffLines, renderSnapshotText } from './diff.js';
 export { getEntitySchema, validateEntityPayload } from './entityRegistry.js';

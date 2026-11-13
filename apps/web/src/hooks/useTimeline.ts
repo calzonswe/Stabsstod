@@ -13,6 +13,8 @@ import {
   manualTimelineItems,
   taskDeadlineItems,
   decisionTimelineItems,
+  briefingTimelineItems,
+  type BriefingPayload,
   type DecisionPayload,
   type RecordEnvelope,
   type TaskPayload,
@@ -40,6 +42,7 @@ interface TimelineData {
   events: (ManualEventEntry & { current: RecordEnvelope | null })[];
   tasks: { entityId: string; payload: TaskPayload }[];
   decisions: { entityId: string; payload: DecisionPayload }[];
+  briefings: { entityId: string; payload: BriefingPayload }[];
 }
 
 export interface UseTimelineResult {
@@ -57,7 +60,7 @@ export function useTimeline(
   incidentId: string,
   authorId: string,
 ): UseTimelineResult {
-  const [data, setData] = useState<TimelineData>({ events: [], tasks: [], decisions: [] });
+  const [data, setData] = useState<TimelineData>({ events: [], tasks: [], decisions: [], briefings: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -105,7 +108,15 @@ export function useTimeline(
             : null;
         })
         .filter((e): e is NonNullable<typeof e> => e !== null);
-      setData({ events, tasks, decisions });
+      const briefings = [...byEntity('briefing').entries()]
+        .map(([entityId, recs]) => {
+          const mat = materializeOne(recs, entityId);
+          return mat && !mat.retracted && mat.current
+            ? { entityId, payload: mat.current.payload as BriefingPayload }
+            : null;
+        })
+        .filter((e): e is NonNullable<typeof e> => e !== null);
+      setData({ events, tasks, decisions, briefings });
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed to load timeline');
@@ -131,6 +142,10 @@ export function useTimeline(
         ),
         tasks: taskDeadlineItems(data.tasks),
         decisions: decisionTimelineItems(data.decisions),
+        // Bounded so an unbounded recurring briefing cannot flood the timeline.
+        briefings: briefingTimelineItems(data.briefings, {
+          horizonEnd: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+        }),
       }),
     [data],
   );

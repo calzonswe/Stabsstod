@@ -447,3 +447,90 @@ describe('timeline_event payload schema', () => {
     ).toBe(false);
   });
 });
+
+// briefing / briefing_report — M24
+const briefingBase = {
+  title: 'Stabsorientering',
+  scheduledAt: '2026-11-12T09:00:00Z',
+  kind: 'recurring' as const,
+  agenda: ['Stabschefen ger nulägesbeskrivning'],
+  status: 'planned' as const,
+};
+
+describe('briefing payload schema', () => {
+  it('accepts a valid briefing with a recurrence', () => {
+    const result = validateEntityPayload(EntityType.briefing, {
+      ...briefingBase,
+      minutes: 'Godkänt.',
+      recurrence: { intervalHours: 2, maxCount: 6, endsAt: '2026-11-13T09:00:00Z' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts every kind and status', () => {
+    for (const kind of ['first_gathering', 'first_briefing', 'recurring', 'other']) {
+      expect(
+        validateEntityPayload(EntityType.briefing, { ...briefingBase, kind }).success,
+      ).toBe(true);
+    }
+    for (const status of ['planned', 'held', 'cancelled']) {
+      expect(
+        validateEntityPayload(EntityType.briefing, { ...briefingBase, status }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('rejects a missing title and an empty agenda item', () => {
+    expect(
+      validateEntityPayload(EntityType.briefing, { ...briefingBase, title: '' }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.briefing, {
+        ...briefingBase,
+        agenda: ['ok', ''],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a non-datetime scheduledAt and a bad recurrence interval', () => {
+    expect(
+      validateEntityPayload(EntityType.briefing, {
+        ...briefingBase,
+        scheduledAt: 'immediately',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.briefing, {
+        ...briefingBase,
+        recurrence: { intervalHours: 0 },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('briefing_report payload schema', () => {
+  it('accepts a valid report for a function', () => {
+    const result = validateEntityPayload(EntityType.briefingReport, {
+      briefingId: 'brief-1',
+      done: 'Prover tagna',
+      planned: 'Analysera prov',
+      challenges: 'Saknar utrustning',
+      collaborationNeeds: 'Behöver labb',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a missing briefingId', () => {
+    const payload: Record<string, unknown> = {
+      briefingId: 'brief-1',
+      done: '',
+      planned: '',
+      challenges: '',
+      collaborationNeeds: '',
+    };
+    delete payload.briefingId;
+    expect(
+      validateEntityPayload(EntityType.briefingReport, payload).success,
+    ).toBe(false);
+  });
+});

@@ -9,12 +9,14 @@
 // UI can render a link and only manual items are retractable here.
 
 import type {
+  BriefingPayload,
   DecisionPayload,
   TaskPayload,
   TimelineEventPayload,
   TimelineEventScope,
   TimelineEventType,
 } from './entityRegistry.js';
+import { briefingOccurrences, type OccurrenceOptions } from './briefings.js';
 
 /** Where a timeline item came from. */
 export type TimelineSource = 'manual' | 'briefing' | 'shift' | 'task' | 'decision';
@@ -99,6 +101,39 @@ export function decisionTimelineItems(
       scope: 'internal',
       refEntityId: d.entityId,
     });
+  }
+  return items;
+}
+
+/**
+ * Briefings (M24): every planned/held briefing becomes a meeting item. A
+ * recurring briefing expands into one item per occurrence (bounded by the
+ * occurrence options; callers should pass a `horizonEnd` in practice so an
+ * unbounded recurrence cannot flood the timeline). Cancelled briefings are
+ * omitted.
+ */
+export function briefingTimelineItems(
+  briefings: { entityId: string; payload: BriefingPayload }[],
+  options: OccurrenceOptions = {},
+): TimelineItem[] {
+  const items: TimelineItem[] = [];
+  for (const b of briefings) {
+    if (b.payload.status === 'cancelled') continue;
+    for (const time of briefingOccurrences(
+      b.payload.scheduledAt,
+      b.payload.recurrence,
+      options,
+    )) {
+      items.push({
+        id: `briefing:${b.entityId}:${time}`,
+        source: 'briefing',
+        title: b.payload.title,
+        time,
+        type: 'meeting',
+        scope: 'internal',
+        refEntityId: b.entityId,
+      });
+    }
   }
   return items;
 }

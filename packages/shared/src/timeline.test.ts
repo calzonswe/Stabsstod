@@ -10,9 +10,15 @@ import {
   manualTimelineItems,
   taskDeadlineItems,
   decisionTimelineItems,
+  briefingTimelineItems,
   type TimelineItem,
 } from './timeline.js';
-import type { TaskPayload, DecisionPayload, TimelineEventPayload } from './entityRegistry.js';
+import type {
+  TaskPayload,
+  DecisionPayload,
+  TimelineEventPayload,
+  BriefingPayload,
+} from './entityRegistry.js';
 
 const eventBase: TimelineEventPayload = {
   title: 'Stabsorientering',
@@ -161,5 +167,59 @@ describe('deriveTimelineItems', () => {
       ],
     });
     expect(items.map((i) => i.source)).toEqual(['briefing', 'shift']);
+  });
+});
+
+// briefingTimelineItems — M24
+const briefingBase: BriefingPayload = {
+  title: 'Stabsorientering',
+  scheduledAt: '2026-11-12T08:00:00Z',
+  kind: 'recurring',
+  agenda: ['Nulägesbeskrivning'],
+  status: 'planned',
+};
+
+describe('briefingTimelineItems', () => {
+  it('a non-recurring briefing is a single meeting item', () => {
+    const items = briefingTimelineItems([
+      { entityId: 'b-1', payload: { ...briefingBase, kind: 'other', status: 'planned' } },
+    ]);
+    expect(items).toEqual([
+      {
+        id: 'briefing:b-1:2026-11-12T08:00:00.000Z',
+        source: 'briefing',
+        title: 'Stabsorientering',
+        time: '2026-11-12T08:00:00.000Z',
+        type: 'meeting',
+        scope: 'internal',
+        refEntityId: 'b-1',
+      },
+    ]);
+  });
+
+  it('a recurring briefing expands into one item per occurrence, bounded by horizonEnd', () => {
+    const items = briefingTimelineItems(
+      [{ entityId: 'b-2', payload: { ...briefingBase, recurrence: { intervalHours: 2 } } }],
+      { horizonEnd: '2026-11-12T10:00:00Z' },
+    );
+    expect(items.map((i) => i.time)).toEqual([
+      '2026-11-12T08:00:00.000Z',
+      '2026-11-12T10:00:00.000Z',
+    ]);
+    expect(items.every((i) => i.source === 'briefing' && i.type === 'meeting')).toBe(true);
+  });
+
+  it('omits cancelled briefings', () => {
+    const items = briefingTimelineItems([
+      { entityId: 'b-3', payload: { ...briefingBase, status: 'cancelled' } },
+    ]);
+    expect(items).toEqual([]);
+  });
+
+  it('held briefings are still shown', () => {
+    const items = briefingTimelineItems([
+      { entityId: 'b-4', payload: { ...briefingBase, status: 'held' } },
+    ]);
+    expect(items).toHaveLength(1);
   });
 });

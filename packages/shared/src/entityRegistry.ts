@@ -248,6 +248,62 @@ const timelineEventSchema = z.object({
   scope: z.enum(['internal', 'external']),
 });
 
+// briefing — M24: a staff briefing (stabsorientering) scheduled by the chief
+// of staff. `kind` decides which agenda template (presets.ts) pre-fills
+// `agenda[]`. `recurrence` makes the briefing repeat on a fixed rhythm until
+// it stops (see briefings.ts expandRecurrence).
+export const BriefingKind = {
+  firstGathering: 'first_gathering',
+  firstBriefing: 'first_briefing',
+  recurring: 'recurring',
+  other: 'other',
+} as const;
+
+export type BriefingKind = (typeof BriefingKind)[keyof typeof BriefingKind];
+
+export const BriefingStatus = {
+  planned: 'planned',
+  held: 'held',
+  cancelled: 'cancelled',
+} as const;
+
+export type BriefingStatus = (typeof BriefingStatus)[keyof typeof BriefingStatus];
+
+export const BriefingRecurrenceSchema = z.object({
+  // Interval between occurrences, in hours.
+  intervalHours: z.number().int().min(1),
+  // Optional stop bounds — whichever comes first ends the recurrence.
+  maxCount: z.number().int().min(1).optional(),
+  endsAt: z.string().datetime().optional(),
+});
+
+export type BriefingRecurrence = z.infer<typeof BriefingRecurrenceSchema>;
+
+const briefingSchema = z.object({
+  title: z.string().min(1),
+  scheduledAt: z.string().datetime(),
+  kind: z.enum(['first_gathering', 'first_briefing', 'recurring', 'other']),
+  // Agenda items (pre-filled from the template for the kind, editable).
+  agenda: z.array(z.string().min(1)),
+  // Meeting minutes (set by a later version while running the briefing).
+  minutes: z.string().optional(),
+  status: z.enum(['planned', 'held', 'cancelled']),
+  recurrence: BriefingRecurrenceSchema.optional(),
+});
+
+// briefing_report — M24: each function prepares its report before the
+// briefing (the four prepare-questions of the handbook). One report per
+// function per briefing; the record `functionId` is the reporting function
+// (what can() gates on).
+const briefingReportSchema = z.object({
+  // entityId of the briefing this report belongs to.
+  briefingId: z.string().min(1),
+  done: z.string(),
+  planned: z.string(),
+  challenges: z.string(),
+  collaborationNeeds: z.string(),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -259,6 +315,8 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.decision, decisionSchema],
   [EntityType.task, taskSchema],
   [EntityType.timelineEvent, timelineEventSchema],
+  [EntityType.briefing, briefingSchema],
+  [EntityType.briefingReport, briefingReportSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -291,3 +349,5 @@ export type DecisionRequestPayload = z.infer<typeof decisionRequestSchema>;
 export type TaskPayload = z.infer<typeof taskSchema>;
 export type DecisionPayload = z.infer<typeof decisionSchema>;
 export type TimelineEventPayload = z.infer<typeof timelineEventSchema>;
+export type BriefingPayload = z.infer<typeof briefingSchema>;
+export type BriefingReportPayload = z.infer<typeof briefingReportSchema>;

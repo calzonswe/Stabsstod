@@ -3,6 +3,96 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M24 — Staff briefings — done (2026-11-13)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `briefing` schema (`title`,
+  `scheduledAt` ISO, `kind: first_gathering|first_briefing|recurring|other`,
+  `agenda[]` (min 1), `minutes?`, `status: planned|held|cancelled`,
+  `recurrence? {intervalHours int≥1, maxCount? int≥1, endsAt? ISO}`) and
+  `briefing_report` schema (`briefingId`, `done`, `planned`, `challenges`,
+  `collaborationNeeds` — the four prepare-questions). `BriefingKind` /
+  `BriefingStatus` consts and payload types exported; registered in
+  `entitySchemas`. 6 new shared schema tests.
+- `packages/shared/src/briefings.ts` (new, pure): `briefingOccurrences(
+  scheduledAt, recurrence, {from?, horizonEnd?, limit?})` expands a
+  (possibly recurring) briefing into concrete occurrence times (ISO,
+  ascending) — `maxCount` bounds the TOTAL number of occurrences (even those
+  before `from`), while `from`/`horizonEnd`/`limit` only bound the returned
+  window; `nextBriefingTime(briefings, now)` → the soonest upcoming
+  occurrence among still-planned briefings (null when none), for the
+  countdown. 11 new tests (the acceptance's "recurrence expansion unit
+  tests").
+- `packages/shared/src/timeline.ts`: `briefingTimelineItems` — every
+  non-cancelled briefing becomes a meeting item, a recurring one expanded to
+  one item per occurrence (callers pass `horizonEnd`; the UI uses 30 days).
+  4 new tests; `deriveTimelineItems` unchanged — the briefings source slot
+  is now actually fed.
+- `packages/shared/src/permissions.ts`: **no change** — `briefing` write is
+  already `CHIEF_DEPUTY_WRITE` (chief/deputy only) and `briefing_report`
+  uses the default rule (members of the reporting function, chief/deputy
+  any function); both already tested. The report record's `functionId` is
+  the reporting function — that is what `can()` gates on.
+- `apps/web/src/hooks/useBriefings.ts` (new): same offline-first flow as
+  the other module hooks — loads incident records, materializes
+  `briefing`/`briefing_report` entities, exposes `briefings` / `reports`,
+  `createBriefing`, `editBriefing` (new version: status/minutes/agenda,
+  parents = heads), `retractBriefing` (retract record with reason), and
+  `saveReport(briefingId, functionId, draft)` — an existing non-retracted
+  report for the same (briefing, function) gets a new version with its heads
+  as parents, otherwise a new entity.
+- `apps/web/src/pages/Briefings.tsx` (new): replaces the "Stab" tab
+  placeholder in `IncidentDetail.tsx`.
+  Live countdown card to the next planned occurrence (30 s tick) via shared
+  `nextBriefingTime`. Schedule form (chief/deputy only): title, time, kind,
+  optional recurrence (interval hours / max count / ends at); the agenda
+  textarea pre-fills from the template for the kind (plan §7 mapping:
+  first_gathering → `first_gathering_agenda`, first_briefing →
+  `first_staff_briefing_agenda`, recurring → `recurring_briefing_agenda`,
+  other → none) on mount, on kind change, and after save. One card per
+  briefing sorted by `scheduledAt`: header (title, kind, status chip, time,
+  recurrence summary), agenda list, minutes box (chief/deputy: textarea +
+  save = new version, "may become a public record" reminder; others:
+  read-only), mark-held / cancel / retract-with-reason buttons (all new
+  versions or a retract record — append-only), reports side by side per
+  function, and one report form per own function (the acceptance's "report
+  form per function") with the four prepare-questions.
+- `apps/web/src/pages/Briefings.test.tsx` (new): 7 tests — chief schedules
+  a recurring briefing with the template agenda (record carries
+  `recurrence {intervalHours: 2, maxCount: 3}`, countdown visible); staff
+  member sees a report form for own function only (no `report-fn-2-*`
+  inputs) and saves it (record `functionId` = fn-1, `parentIds: []`);
+  saving twice writes a new version, not a new entity (2 puts, second's
+  parent = first); chief marks held and saves minutes (3 puts, last has
+  status held + minutes, countdown gone); observer sees the briefing but no
+  write UI; chief retracts with a reason (retract record, parent = the put,
+  reason stored); a seeded report pre-fills the form.
+- `apps/web/src/hooks/useTimeline.ts`: the timeline now feeds the
+  briefings source via `briefingTimelineItems` (30-day horizon, so an
+  unbounded recurrence cannot flood it).
+- `apps/web/src/locales/{sv,en}.json`: `briefings.*` strings (parity
+  test).
+
+**Learned:**
+- In `briefingOccurrences` the total-generation bound and the return bound
+  must be separate: when `maxCount` is undefined the loop used to stop after
+  `limit` generated occurrences, so an unbounded recurrence whose first
+  occurrence fell outside the `from` window returned nothing.
+- A busy flag that doubles as the dialog-open flag keeps the confirm button
+  permanently disabled (the open state is true exactly while you could
+  confirm) — the retract dialog now has a separate `retractOpen` state.
+- After a save, the same text exists in both the display grid (`dd`) and
+  the still-filled form textarea — scope testing-library `getByText` with
+  `{ selector: 'dd' }`.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(184 shared + 57 api + 85 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19
+scenario cards show a plain conflict badge only (no full ConflictBanner /
+merge UI); M20 acknowledge disabled until a mission exists, mission history
+drawer not rendered. Next: M25 (Shifts and handovers).
+
 ## M23 — Timeline — done (2026-11-12)
 
 **Done:**
