@@ -635,3 +635,94 @@ describe('handover_note payload schema', () => {
     ).toBe(false);
   });
 });
+
+// actor — M26
+const actorBase = {
+  name: 'Polisen',
+  type: 'Organisation',
+  role: 'Undersöker händelsen',
+  contact: '070-123 45 67',
+  status: 'involved',
+  relations: [],
+};
+
+describe('actor payload schema', () => {
+  it('accepts a valid actor in every status, with and without contact', () => {
+    const statuses = ['involved', 'should_be_involved', 'informed'] as const;
+    for (const status of statuses) {
+      expect(
+        validateEntityPayload(EntityType.actor, {
+          ...actorBase,
+          status,
+          contact: undefined,
+        }).success,
+      ).toBe(true);
+    }
+    expect(
+      validateEntityPayload(EntityType.actor, { ...actorBase }).success,
+    ).toBe(true);
+  });
+
+  it('accepts relations (directed, free-form relation text)', () => {
+    expect(
+      validateEntityPayload(EntityType.actor, {
+        ...actorBase,
+        relations: [
+          { actorId: 'actor-b', relation: 'Anmälningsmottagare' },
+          { actorId: 'actor-c', relation: 'Informeras via' },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects missing name, type or role', () => {
+    const missingName: Record<string, unknown> = { ...actorBase };
+    delete missingName.name;
+    expect(validateEntityPayload(EntityType.actor, missingName).success).toBe(
+      false,
+    );
+    expect(
+      validateEntityPayload(EntityType.actor, {
+        ...actorBase,
+        name: '',
+        type: '',
+        role: '',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a bad status', () => {
+    expect(
+      validateEntityPayload(EntityType.actor, {
+        ...actorBase,
+        status: 'boss',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a missing relations array and relation entries without actorId or relation', () => {
+    const missingRelations: Record<string, unknown> = { ...actorBase };
+    delete missingRelations.relations;
+    expect(
+      validateEntityPayload(EntityType.actor, missingRelations).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.actor, {
+        ...actorBase,
+        relations: [{ relation: 'Ska involveras' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.actor, {
+        ...actorBase,
+        relations: [{ actorId: 'actor-b' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.actor, {
+        ...actorBase,
+        relations: [{ actorId: '', relation: 'x' }],
+      }).success,
+    ).toBe(false);
+  });
+});

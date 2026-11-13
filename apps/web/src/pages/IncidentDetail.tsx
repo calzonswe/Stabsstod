@@ -22,6 +22,7 @@ import MissionDirection from './MissionDirection.js';
 import Decisions from './Decisions.js';
 import Tasks from './Tasks.js';
 import Timeline from './Timeline.js';
+import Actors from './Actors.js';
 import Briefings from './Briefings.js';
 import Shifts from './Shifts.js';
 import { LocalStore } from '../localStore.js';
@@ -354,6 +355,12 @@ export default function IncidentWorkspace() {
               actor={actor}
               functions={functions}
               members={members}
+            />
+            <Actors
+              store={localStore}
+              incidentId={id!}
+              authorId={user?.id ?? ''}
+              actor={actor}
             />
           </div>
         )}

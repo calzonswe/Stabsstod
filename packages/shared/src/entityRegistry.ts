@@ -352,6 +352,41 @@ const handoverNoteSchema = z.object({
   text: z.string().min(1),
 });
 
+// actor — M26: actor analysis (aktörsanalys). An actor is a person or
+// organisation involved in the incident. `type`/`role`/`relation` are
+// free-form text (the handbook has no fixed vocabulary); `status` says how
+// the staff relates to the actor: involved / should be involved / informed.
+// Relations are directed (this actor → target actor) and free-form.
+export const ActorStatus = {
+  involved: 'involved',
+  shouldBeInvolved: 'should_be_involved',
+  informed: 'informed',
+} as const;
+
+export type ActorStatus = (typeof ActorStatus)[keyof typeof ActorStatus];
+
+const actorRelationSchema = z.object({
+  // Entity id of the target actor (may reference an actor created later;
+  // unknown ids are not an error — they render as "unknown actor").
+  actorId: z.string().min(1),
+  // Free-form relation description (e.g. "responsible for", "informed via").
+  relation: z.string().min(1),
+});
+
+const actorSchema = z.object({
+  name: z.string().min(1),
+  type: z.string().min(1),
+  role: z.string().min(1),
+  contact: z.string().optional(),
+  status: z.enum([
+    ActorStatus.involved,
+    ActorStatus.shouldBeInvolved,
+    ActorStatus.informed,
+  ]),
+  // Directed relations to other actors; empty = no relations.
+  relations: z.array(actorRelationSchema),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -367,6 +402,7 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.briefingReport, briefingReportSchema],
   [EntityType.shift, shiftSchema],
   [EntityType.handoverNote, handoverNoteSchema],
+  [EntityType.actor, actorSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -403,3 +439,5 @@ export type BriefingPayload = z.infer<typeof briefingSchema>;
 export type BriefingReportPayload = z.infer<typeof briefingReportSchema>;
 export type ShiftPayload = z.infer<typeof shiftSchema>;
 export type HandoverNotePayload = z.infer<typeof handoverNoteSchema>;
+export type ActorRelation = z.infer<typeof actorRelationSchema>;
+export type ActorPayload = z.infer<typeof actorSchema>;

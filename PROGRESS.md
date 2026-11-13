@@ -3,6 +3,68 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M26 — Actor analysis — done (2026-11-13)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `actor` schema (`name`, `type`, `role` min 1;
+  `contact` optional; `status: involved|should_be_involved|informed`; `relations[] {actorId, relation}`
+  — directed, free-form). `ActorStatus` const + `ActorRelation`/`ActorPayload` types; registered
+  `[EntityType.actor, actorSchema]` in `entitySchemas`. `EntityType.actor` already existed
+  (record.ts line 22). 6 new shared schema tests (valid in every status with/without contact;
+  relations accepted; rejects missing name/type/role, bad status, missing/incomplete relations).
+- `packages/shared/src/index.ts`: exports `ActorStatus` (const) and `ActorRelation`/`ActorPayload`
+  (types).
+- `packages/shared/src/permissions.ts`: **no change** — `actor` is not in `CHIEF_DEPUTY_WRITE` and
+  not in the §7 type-gate table, so the default `canWrite` rule applies: members of the record's
+  function (chief/deputy any functionId incl. null); observers write nothing; retract = author or
+  chief/deputy.
+- `apps/web/src/hooks/useActors.ts` (new): offline-first flow mirroring useShifts.ts.
+  `createActor(draft, functionId)` (new entity, `parentIds: []`, functionId = author's own function
+  or null for chief/deputy). `addRelation`/`removeRelation`/`setStatus` = version writes via a shared
+  `writeVersion` helper: same `entityId`, `parentIds = mat.heads.map(h => h.id)`, payload = current
+  payload merged. `addRelation` uses upsert semantics (update existing relation text for the target,
+  else push) — one new version either way. `retractActor(entityId, reason)` = retract record with
+  parents = heads.
+- `apps/web/src/pages/Actors.tsx` (new): create form gated by
+  `can(actor,'write',{entityType:'actor', incidentId, functionId: myFunctionId})` where
+  `myFunctionId = actor.functionIds[0] ?? null`; record's functionId = that `myFunctionId`. Filter
+  row: text search (name/type/role) + status select. List rows per non-retracted actor: name/type/role/
+  contact, status select if maintainable else label, relations list (target name resolved by entityId
+  with "unknown actor" fallback, relation text, remove button), add-relation form (target select
+  excluding self + relation input), retract-with-reason (author/chief/deputy). Maintain gate per
+  entity: `can(actor,'write',{entityType:'actor', functionId: entity.functionId})`.
+- SVG graph: static circle layout (center ~400,250; radius ~170; n=1 center, n=2 horizontal, n≥3
+  circle), nodes = ALL non-retracted actors so every edge resolves, node
+  `<g data-testid="actor-node-{entityId}">`, edge `<line data-testid="actor-edge-{sourceId}:{targetId}">`
+  (drawn before nodes), relation text at line midpoint with white halo
+  (`paintOrder="stroke"`), node fill by status (involved=emerald, should_be_involved=amber,
+  informed=sky), `<svg data-testid="actor-graph">`, truncated name label under node.
+- `apps/web/src/pages/IncidentDetail.tsx`: wired `<Actors .../>` after `<Shifts>` in the Stab tab.
+- `apps/web/src/locales/{sv,en}.json`: `actors.*` keys inserted after `shifts.noteForm.saving`
+  (parity test enforces identical key sets).
+- `apps/web/src/pages/Actors.test.tsx` (new): 8 tests (store `user-m26-N`, Swedish assertions):
+  (1) staff creates actor → record functionId 'fn-1' (own function), payload fields, parentIds [];
+  (2) add relation = new version: seed A, B, add A→B → 2 puts for A (second's parentIds = [first head
+  id], same entityId), `payload.relations = [{actorId: B, relation}]`, B untouched;
+  (3) remove relation = new version: seed A with relation → remove → new version `relations: []`;
+  (4) status change = new version (informed→involved, same entity);
+  (5) filter by status + text; (6) graph: 3 seeded actors + 1 relation → `actor-graph`, 3×
+  `actor-node-*`, 1× `actor-edge-*`; (7) retract with reason (retract record, `parentIds: [put.id]`,
+  row gone); (8) observer sees list/graph, no write UI.
+
+**Learned:**
+- The relation-remove button shares the label "Ta bort" with the retract toggle (self-retract is
+  allowed for the author), so tests must target relation-remove by `data-testid`, not by role name.
+- `fireEvent.click` does not await async handlers — after a version-write click, wait for the UI to
+  reflect the change (refresh) before asserting on `headOf`/`getRecordsByEntity`.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(217 shared + 57 api + 101 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19 scenario cards show a plain
+conflict badge only (no full ConflictBanner/merge UI); M20 acknowledge disabled until a mission
+exists, mission history drawer not rendered. Next: M27 (Resources, staffing, logistics).
+
 ## M25 — Shifts and handovers — done (2026-11-13)
 
 **Done:**
