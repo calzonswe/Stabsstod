@@ -387,6 +387,67 @@ const actorSchema = z.object({
   relations: z.array(actorRelationSchema),
 });
 
+// resource — M27: resources, staffing and logistics (samordning).
+// A resource is something the staff needs or has: personnel, vehicle,
+// equipment, facility or other. `quantity` is how many, `unit` is the unit
+// (e.g. "st", "kg", "enheter"), `status` says whether it is available,
+// deployed, requested or unavailable.
+export const ResourceType = {
+  personnel: 'personnel',
+  vehicle: 'vehicle',
+  equipment: 'equipment',
+  facility: 'facility',
+  other: 'other',
+} as const;
+
+export type ResourceType = (typeof ResourceType)[keyof typeof ResourceType];
+
+export const ResourceStatus = {
+  available: 'available',
+  deployed: 'deployed',
+  requested: 'requested',
+  unavailable: 'unavailable',
+} as const;
+
+export type ResourceStatus = (typeof ResourceStatus)[keyof typeof ResourceStatus];
+
+// Display orders (stable, deterministic sorting).
+export const RESOURCE_TYPE_ORDER: ResourceType[] = [
+  ResourceType.personnel,
+  ResourceType.vehicle,
+  ResourceType.equipment,
+  ResourceType.facility,
+  ResourceType.other,
+];
+
+export const RESOURCE_STATUS_ORDER: ResourceStatus[] = [
+  ResourceStatus.available,
+  ResourceStatus.deployed,
+  ResourceStatus.requested,
+  ResourceStatus.unavailable,
+];
+
+const resourceSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum([
+    ResourceType.personnel,
+    ResourceType.vehicle,
+    ResourceType.equipment,
+    ResourceType.facility,
+    ResourceType.other,
+  ]),
+  quantity: z.number().int().min(0),
+  unit: z.string().optional(),
+  location: z.string().optional(),
+  status: z.enum([
+    ResourceStatus.available,
+    ResourceStatus.deployed,
+    ResourceStatus.requested,
+    ResourceStatus.unavailable,
+  ]),
+  notes: z.string().optional(),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -403,6 +464,7 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.shift, shiftSchema],
   [EntityType.handoverNote, handoverNoteSchema],
   [EntityType.actor, actorSchema],
+  [EntityType.resource, resourceSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -441,3 +503,4 @@ export type ShiftPayload = z.infer<typeof shiftSchema>;
 export type HandoverNotePayload = z.infer<typeof handoverNoteSchema>;
 export type ActorRelation = z.infer<typeof actorRelationSchema>;
 export type ActorPayload = z.infer<typeof actorSchema>;
+export type ResourcePayload = z.infer<typeof resourceSchema>;

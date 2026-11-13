@@ -726,3 +726,99 @@ describe('actor payload schema', () => {
     ).toBe(false);
   });
 });
+
+// resource — M27
+const resourceBase = {
+  name: 'Brandbil',
+  type: 'vehicle',
+  quantity: 2,
+  status: 'available',
+};
+
+describe('resource payload schema', () => {
+  it('accepts a valid resource in every type and status, with and without optional fields', () => {
+    const types = [
+      'personnel',
+      'vehicle',
+      'equipment',
+      'facility',
+      'other',
+    ] as const;
+    const statuses = [
+      'available',
+      'deployed',
+      'requested',
+      'unavailable',
+    ] as const;
+    for (const type of types) {
+      for (const status of statuses) {
+        expect(
+          validateEntityPayload(EntityType.resource, {
+            ...resourceBase,
+            type,
+            status,
+            unit: undefined,
+            location: undefined,
+            notes: undefined,
+          }).success,
+        ).toBe(true);
+      }
+    }
+    // With all optional fields.
+    expect(
+      validateEntityPayload(EntityType.resource, {
+        ...resourceBase,
+        unit: 'st',
+        location: 'Garage A',
+        notes: 'Vinterdäck på',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects missing name, type, quantity or status', () => {
+    const missingName: Record<string, unknown> = { ...resourceBase };
+    delete missingName.name;
+    expect(
+      validateEntityPayload(EntityType.resource, missingName).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.resource, {
+        ...resourceBase,
+        name: '',
+        type: '',
+        quantity: -1,
+        status: '',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.resource, {
+        ...resourceBase,
+        quantity: 1.5,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a bad type or status', () => {
+    expect(
+      validateEntityPayload(EntityType.resource, {
+        ...resourceBase,
+        type: 'drone',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.resource, {
+        ...resourceBase,
+        status: 'on_order',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts quantity 0 (none available)', () => {
+    expect(
+      validateEntityPayload(EntityType.resource, {
+        ...resourceBase,
+        quantity: 0,
+      }).success,
+    ).toBe(true);
+  });
+});

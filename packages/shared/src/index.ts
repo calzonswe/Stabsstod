@@ -30,6 +30,13 @@ export { TimelineEventType, TimelineEventScope } from './entityRegistry.js';
 export { BriefingKind, BriefingStatus, BriefingRecurrenceSchema } from './entityRegistry.js';
 export { ShiftRole } from './entityRegistry.js';
 export { ActorStatus } from './entityRegistry.js';
+export {
+  ResourceType,
+  ResourceStatus,
+  RESOURCE_TYPE_ORDER,
+  RESOURCE_STATUS_ORDER,
+} from './entityRegistry.js';
+export type { ResourcePayload } from './entityRegistry.js';
 export type { BriefingRecurrence } from './entityRegistry.js';
 export type { TaskLike } from './tasks.js';
 export { isTaskOverdue, groupTasksByStatus, TASK_STATUS_ORDER, TERMINAL_TASK_STATUSES } from './tasks.js';

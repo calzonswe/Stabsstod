@@ -3,6 +3,60 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M27 — Resources, staffing, logistics — done (2026-11-13)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: `resource` schema (`name` min 1, `type` enum
+  personnel/vehicle/equipment/facility/other, `quantity` int≥0, `unit?`, `location?`,
+  `status` enum available/deployed/requested/unavailable, `notes?`). `ResourceType` /
+  `ResourceStatus` consts + `RESOURCE_TYPE_ORDER` / `RESOURCE_STATUS_ORDER` arrays +
+  `ResourcePayload` type; registered `[EntityType.resource, resourceSchema]` in
+  `entitySchemas`. 6 new shared schema tests (valid in every type/status with/without
+  optionals; rejects missing name/type/quantity/status, bad type/status, non-integer
+  quantity; accepts quantity 0).
+- `packages/shared/src/index.ts`: exports `ResourceType`, `ResourceStatus`,
+  `RESOURCE_TYPE_ORDER`, `RESOURCE_STATUS_ORDER` (values) and `ResourcePayload` (type).
+- `packages/shared/src/permissions.ts`: **no change** — `resource` is not in
+  `CHIEF_DEPUTY_WRITE` and not in the §7 type-gate table, so the default `canWrite`
+  rule applies: members of the record's function (chief/deputy any functionId incl.
+  null); observers write nothing; retract = author or chief/deputy.
+- `apps/web/src/hooks/useResources.ts` (new): offline-first flow mirroring useActors.ts.
+  `createResource(draft, functionId)` (new entity, `parentIds: []`). `updateResource` /
+  `writeVersion` = version writes: same entityId, `parentIds = mat.heads`, payload =
+  current payload merged. `retractResource(entityId, reason)` = retract record with
+  parents = heads.
+- `apps/web/src/pages/Resources.tsx` (new): create form gated by
+  `can(actor,'write',{entityType:'resource', incidentId, functionId: myFunctionId})`.
+  Resource table with status badges; summary per type and per status; staffing overview
+  (per function: members assigned vs members on duty — shift covers now, both boundaries
+  inclusive). Retract-with-reason per row (author/chief/deputy). Row rendered as its own
+  `ResourceRow` component so retract `useState` lives at hook top level.
+- `apps/web/src/pages/IncidentDetail.tsx`: wired `<Resources .../>` after `<Actors>` in
+  the Stab tab (per §5.10 order: briefings/shifts/actors/resources).
+- `apps/web/src/locales/{sv,en}.json`: `resources.*` keys (44 lines, parity test).
+- `apps/web/src/pages/Resources.test.tsx` (new): 6 tests (store `user-m27-N`, Swedish
+  assertions): (1) staff creates resource → record functionId 'fn-1' (own function),
+  payload fields, parentIds []; (2) update = new version with correct parentIds;
+  (3) retract with reason = retract record, `parentIds: [put.id]`, row gone;
+  (4) summary per type + per status (accept); (5) staffing overview functions vs
+  members on duty; (6) observer sees table/summary, no write UI.
+
+**Learned:**
+- Hooks called inside `.map()` callbacks (e.g. table row retract state) violate React's
+  Rules of Hooks — extract each row into its own component (`ResourceRow`).
+- Early `return` for loading/error states must come AFTER all `useState`/`useEffect`
+  calls in the component body, or React complains about hook order changes.
+- `seed` helper must accept `parentIds` for version writes of existing entities;
+  bare `parentIds: []` is only for new entities.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(221 shared + 57 api + 107 web tests).
+
+**Left over:** M18 diff labels show authors, not Stockholm 24h times; M19 scenario cards
+show a plain conflict badge only (no full ConflictBanner/merge UI); M20 acknowledge
+disabled until a mission exists, mission history drawer not rendered. Next: M28
+(Attachments).
+
 ## M26 — Actor analysis — done (2026-11-13)
 
 **Done:**

@@ -24,6 +24,7 @@ import Tasks from './Tasks.js';
 import Timeline from './Timeline.js';
 import Actors from './Actors.js';
 import Briefings from './Briefings.js';
+import Resources from './Resources.js';
 import Shifts from './Shifts.js';
 import { LocalStore } from '../localStore.js';
 
@@ -361,6 +362,14 @@ export default function IncidentWorkspace() {
               incidentId={id!}
               authorId={user?.id ?? ''}
               actor={actor}
+            />
+            <Resources
+              store={localStore}
+              incidentId={id!}
+              authorId={user?.id ?? ''}
+              actor={actor}
+              functions={functions}
+              members={members}
             />
           </div>
         )}
