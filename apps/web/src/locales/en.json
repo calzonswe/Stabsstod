@@ -564,5 +564,10 @@
   "attachments.status.uploading": "Uploading",
   "attachments.status.uploaded": "Uploaded",
   "attachments.status.failed": "Failed",
-  "attachments.retract.reason": "Reason (required)"
+  "attachments.retract.reason": "Reason (required)",
+  "map.loading": "Loading map…",
+  "map.missingTitle": "Map file missing",
+  "map.missingBody": "No PMTiles map file found on the server. Place a file at data/maps/sweden.pmtiles and restart.",
+  "map.retry": "Retry",
+  "map.onlineLayer": "Layer: online map"
 }

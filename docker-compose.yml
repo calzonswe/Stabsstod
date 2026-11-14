@@ -31,6 +31,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-change-me-long-random-string}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
       ATTACHMENTS_DIR: /data/attachments
+      MAPS_DIR: /app/data/maps
     depends_on:
       db:
         condition: service_healthy
@@ -50,6 +51,7 @@ services:
       - '127.0.0.1:3000:3000'
     volumes:
       - attachments:/data/attachments
+      - ./data/maps:/app/data/maps:ro
 
 volumes:
   pgdata:

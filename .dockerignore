@@ -1,0 +1,9 @@
+# Keep the Docker build context small. data/ holds the map files and
+# attachments (several GB) and is mounted as a volume, not built in.
+data/
+.git/
+node_modules/
+**/node_modules/
+e2e/
+.env
+*.md

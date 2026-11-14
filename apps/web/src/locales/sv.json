@@ -564,5 +564,10 @@
   "attachments.status.uploading": "Laddar upp",
   "attachments.status.uploaded": "Uppladdad",
   "attachments.status.failed": "Misslyckades",
-  "attachments.retract.reason": "Anledning (obligatorisk)"
+  "attachments.retract.reason": "Anledning (obligatorisk)",
+  "map.loading": "Laddar karta…",
+  "map.missingTitle": "Kartfil saknas",
+  "map.missingBody": "Ingen PMTiles-kartfil finns på servern. Lägg en fil på data/maps/sweden.pmtiles och starta om.",
+  "map.retry": "Försök igen",
+  "map.onlineLayer": "Lager: karta online"
 }

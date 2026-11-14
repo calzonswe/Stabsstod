@@ -25,6 +25,7 @@ import Timeline from './Timeline.js';
 import Actors from './Actors.js';
 import Attachments from './Attachments.js';
 import Briefings from './Briefings.js';
+import Map from './Map.js';
 import Resources from './Resources.js';
 import Shifts from './Shifts.js';
 import { LocalStore } from '../localStore.js';
@@ -335,7 +336,9 @@ export default function IncidentWorkspace() {
             <h2 className="text-lg font-semibold text-slate-900 mb-4">
               {t('incidents.workspace.map')}
             </h2>
-            <div className="text-slate-500">{t('incidents.placeholder.comingSoon')}</div>
+            <div className="h-96 w-full">
+              <Map />
+            </div>
           </div>
         )}
         {activeTab === 'staff' && (

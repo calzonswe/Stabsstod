@@ -26,6 +26,42 @@ export function useAuth() {
   return ctx;
 }
 
+// Offline-first session: the last server-verified user is persisted so the
+// app stays signed in across reloads while the network is down (the M13
+// smoke test depends on this).
+const AUTH_STORAGE_KEY = 'stabsstod-auth-user';
+
+function readStoredUser(): AuthUser | null {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? 'null') as
+      | Partial<AuthUser>
+      | null;
+    if (!parsed || typeof parsed.id !== 'string' || typeof parsed.username !== 'string') {
+      return null;
+    }
+    return {
+      id: parsed.id,
+      username: parsed.username,
+      role: parsed.role === 'user' ? 'user' : 'admin',
+      mustChangePassword: parsed.mustChangePassword === true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistUser(user: AuthUser | null): void {
+  try {
+    if (user) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  } catch {
+    // Storage unavailable (quota, private mode) — in-memory session only.
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,11 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        persistUser(data.user);
       } else {
+        // The server says we are signed out (expired or invalid session).
         setUser(null);
+        persistUser(null);
       }
     } catch {
-      setUser(null);
+      // Offline (or transient network error): keep the last known session so
+      // the app remains usable after a reload while the network is down.
+      setUser(readStoredUser());
     } finally {
       setLoading(false);
     }
@@ -62,14 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const data = await res.json();
     setUser(data.user);
+    persistUser(data.user);
   }
 
   async function logout() {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    });
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // Offline: server-side cleanup is best-effort; the local session is
+      // cleared regardless.
+    }
     setUser(null);
+    persistUser(null);
   }
 
   async function changePassword(current: string, newPassword: string) {
@@ -81,6 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (!res.ok) {
       throw new Error('change password failed');
+    }
+    if (user) {
+      const updated: AuthUser = { ...user, mustChangePassword: false };
+      setUser(updated);
+      persistUser(updated);
     }
   }
 

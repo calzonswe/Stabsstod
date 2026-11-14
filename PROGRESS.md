@@ -3,6 +3,63 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M29 — Map base — done (2026-11-14)
+
+**Done:**
+- `apps/web/src/pages/Map.tsx` (new): local PMTiles basemap via `pmtiles://`
+  protocol (`pmtiles@4.5.0` `Protocol`, registered with `MapLibreGL.addProtocol`);
+  glyphs `map-assets/fonts/{fontstack}/{range}.pbf` and sprite `map-assets/sprites/light`
+  served same-origin from `data/maps/map-assets` by the API (`@fastify/static`
+  scopes `/tiles` + `/map-assets`, SPA fallback to `index.html`; `WEB_DIST`/`MAPS_DIR`
+  env overrides). `pmtilesAvailable()` probes the magic bytes "PM" via a 2-byte
+  range fetch; missing file → friendly "Kartfil saknas" card with retry.
+- `apps/web/src/pages/Map.test.tsx` (new): 4 unit tests — missing file → card +
+  no map constructed; retry re-checks; file present → map constructed with
+  `pmtiles:///tiles/sweden.pmtiles` source, local sprite/glyph URLs, online-layer
+  toggle; `data-loaded` flips to `true` on load.
+- `e2e/tests/map.test.ts` (new, M29 accept): log in → create incident → Karta tab →
+  `map-container[data-loaded="true"]`; zero non-localhost requests (blob:/data:
+  skipped — they parse with empty hostname).
+- `e2e/tests/smoke.test.ts` (M13 accept, first green run): log in → wait for SW
+  controller → offline → reload → h1 "Välkommen" + exact "Offline" header chip.
+- `scripts/fetch-map.sh` (validated): go-pmtiles CLI extract (Sweden bbox, zoom 0–14)
+  + basemaps-assets (3 Noto font families + `sprites/v4/light.*` → `sprites/light.*`);
+  `data/maps/sweden.pmtiles` (2.4 GB) + `map-assets/{fonts,sprites}` in place.
+- `apps/api/src/app.ts`, `static.test.ts`, `maps.test.ts`: static/SPA + map serving
+  (6 + 6 tests).
+- `apps/web/src/locales/{sv,en}.json`: `map.*` keys added (sv + en parity).
+- e2e: workspace, `global-setup.ts` admin upsert (retry 60 s), `playwright.config.ts`
+  webServer `docker compose up --build -d`, `reuseExistingServer: !CI`.
+- `apps/web/src/contexts/AuthContext.tsx` + `AuthContext.test.tsx`: offline session
+  persistence (`localStorage['stabsstod-auth-user']`, restore on `/me` failure, 401
+  clear, `changePassword` persists `mustChangePassword=false`) — 7 tests.
+
+**Learned:**
+- MapLibre `normalizeSpriteURL` regex `/^(\w+):\/\/([^/?]*)(\/[^?]+)?\??(.+)?/` requires
+  an absolute URL with protocol — a relative `SPRITE_URL='/map-assets/sprites/light'`
+  throws `Unable to parse URL "..."`, the style never finishes, `load` never fires.
+  Fix: build sprite/glyph bases from `window.location.origin` (same-origin, still
+  offline-safe; jsdom origin `http://localhost:3000`).
+- `blob:` URLs parse with empty `hostname`, so the e2e external-request assertion
+  must skip `blob:`/`data:` protocols (they are local in-memory URLs, not cross-host
+  network requests).
+- e2e `webServer` uses `reuseExistingServer: !CI`, so it reuses an already-running
+  container — the image must be rebuilt + recreated (`docker compose up --build -d`)
+  after any source change before e2e, otherwise tests run against a stale bundle.
+- Map container `role="region"`/`aria-label="Map"` canvas proves `new Map()` ran;
+  `load` is gated on `style.loaded()`, which is blocked while sprite/glyph load errors.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(224 shared + 78 api + 122 web tests); e2e 2 passed (map + smoke); `docker compose
+build` + `scripts/smoke.sh` pass.
+
+**Left over:** API tests pollute runtime DB (no `TEST_DATABASE_URL` isolation;
+`bootstrapAdmin` empty-table check) — recommend separate test DB. M18 diff labels
+show authors, not Stockholm 24h times; M19 scenario cards show a plain conflict badge
+only (no full ConflictBanner/merge UI); M20 acknowledge disabled until a mission
+exists, mission history drawer not rendered.
+Next: M30.
+
 ## M28 — Attachments — done (2026-11-13)
 
 **Done:**
