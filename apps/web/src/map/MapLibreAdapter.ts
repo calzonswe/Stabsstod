@@ -216,11 +216,7 @@ export class MapLibreAdapter {
       this.featuresCache = this.featuresCache.filter((f) => f.id !== id);
     }
 
-    const source = this.map.getSource(this.sourceId);
-    const gjSource = source as unknown as { setData: (data: GeoJSONFeatureCollection) => void };
-    if (gjSource.setData) {
-      gjSource.setData(this.featureCollection());
-    }
+    this.applyToMap();
     this.onChange?.(this.allFeatures());
   }
 
@@ -228,10 +224,18 @@ export class MapLibreAdapter {
    *  existing features from the local store). */
   setFeatures(features: GeoJSONFeature[]): void {
     this.featuresCache = features;
-    const source = this.map.getSource(this.sourceId);
-    const gjSource = source as unknown as { setData: (data: GeoJSONFeatureCollection) => void };
-    if (gjSource.setData) {
-      gjSource.setData(this.featureCollection());
+    this.applyToMap();
+  }
+
+  /** Push the cached feature collection into the map's GeoJSON source.
+   *  No-op when the source is missing (map not loaded or already removed)
+   *  instead of throwing. */
+  private applyToMap(): void {
+    const source = this.map.getSource(this.sourceId) as
+      | { setData?: (data: GeoJSONFeatureCollection) => void }
+      | undefined;
+    if (source && typeof source.setData === 'function') {
+      source.setData(this.featureCollection());
     }
   }
 
@@ -255,11 +259,7 @@ export class MapLibreAdapter {
 
   clear(): void {
     this.featuresCache = [];
-    const source = this.map.getSource(this.sourceId);
-    const gjSource = source as unknown as { setData: (data: GeoJSONFeatureCollection) => void };
-    if (gjSource.setData) {
-      gjSource.setData(this.featureCollection());
-    }
+    this.applyToMap();
   }
 
   getCoordinatePrecision(): number {

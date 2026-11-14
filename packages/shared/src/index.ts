@@ -43,7 +43,15 @@ export { MapFeatureSeverity, MapFeatureLayer, MapFeatureValidity } from './entit
 export type { BriefingRecurrence } from './entityRegistry.js';
 export type { TaskLike } from './tasks.js';
 export { isTaskOverdue, groupTasksByStatus, TASK_STATUS_ORDER, TERMINAL_TASK_STATUSES } from './tasks.js';
-export { circleToPolygon, deserializeGeometry, serializeGeometry, distanceMeters, METRES_PER_DEGREE_LAT } from './geometry.js';
+export {
+  circleToPolygon,
+  deserializeGeometry,
+  serializeGeometry,
+  distanceMeters,
+  geometryBounds,
+  METRES_PER_DEGREE_LAT,
+} from './geometry.js';
+export type { GeometryBounds } from './geometry.js';
 export type { TimelineSource, TimelineItem, TimelineItemSources } from './timeline.js';
 export {
   manualTimelineItems,
@@ -73,3 +81,31 @@ export type { ScenarioGroup, ScenarioGroupItem } from './scenarios.js';
 export { groupScenarios, HORIZON_ORDER, LIKELIHOOD_ORDER } from './scenarios.js';
 export type { Actor, IncidentRole, Action, RecordLike, CanContext } from './permissions.js';
 export { can } from './permissions.js';
+export type {
+  MissionWidget,
+  DirectionWidget,
+  BriefingWidget,
+  ShiftChange,
+  FunctionStatus,
+  FactCounts,
+  TimeScaleStrip,
+  SyncHealth,
+  OutboxEntryLike,
+} from './dashboard.js';
+export {
+  selectMission,
+  selectDirection,
+  selectElapsedTime,
+  selectNextBriefing,
+  selectShiftChanges,
+  selectFunctionStatusBoard,
+  selectRecentLogEntries,
+  selectFactCounts,
+  selectDecisionsWaiting,
+  selectOverdueTasks,
+  selectTimeScaleStrip,
+  selectMiniMapFeatures,
+  selectSyncHealth,
+  selectConflictCount,
+  formatHms,
+} from './dashboard.js';

@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent as ReactFormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.js';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { can, type Actor } from '@stabsstod/shared';
 import Logbook from './Logbook.js';
 import FactBoard from './FactBoard.js';
@@ -94,6 +94,7 @@ export default function IncidentWorkspace() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [incident, setIncident] = useState<IncidentDetail | null>(null);
   const [functions, setFunctions] = useState<FunctionRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
@@ -176,6 +177,31 @@ export default function IncidentWorkspace() {
 
   const isChiefOrDeputy = incident?.role === 'chief_of_staff' || incident?.role === 'deputy_chief';
   const isAdmin = user?.role === 'admin';
+
+  // M32: the chief of staff / deputy lands on the dashboard by default —
+  // once per browser session per incident, so the workspace (tabs, map)
+  // stays reachable via the dashboard's "Tillbaka" link. The flag is read
+  // synchronously (not in an effect) so the workspace never flashes first.
+  let redirectToDashboard = false;
+  if (isChiefOrDeputy && incident) {
+    const key = `dashboard-visited-${incident.id}`;
+    try {
+      redirectToDashboard = sessionStorage.getItem(key) === null;
+    } catch {
+      // sessionStorage unavailable — still redirect.
+      redirectToDashboard = true;
+    }
+  }
+
+  useEffect(() => {
+    if (!redirectToDashboard || !incident) return;
+    try {
+      sessionStorage.setItem(`dashboard-visited-${incident.id}`, '1');
+    } catch {
+      // Ignore: the redirect itself still happens.
+    }
+    navigate(`/incidents/${incident.id}/dashboard`, { replace: true });
+  }, [redirectToDashboard, incident, navigate]);
 
   if (loading) {
     return <div className="text-center py-10">{t('incidents.loading')}</div>;

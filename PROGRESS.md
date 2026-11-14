@@ -3,6 +3,89 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M32 — Chief of staff dashboard — done (2026-11-14)
+
+**Done:**
+- `packages/shared/src/dashboard.ts` (new): pure dashboard selectors, all taking
+  the incident's full mixed record bag and filtering by entity type internally —
+  `selectMission`, `selectDirection` (incl. divergence flag), `selectElapsedTime`
+  (`hh:mm:ss`), `selectNextBriefing` (countdown), `selectShiftChanges` (start/end
+  events inside a time window), `selectFunctionStatusBoard` (lead on duty, open /
+  overdue tasks, last update, latest challenge, RAG), `selectRecentLogEntries`
+  (default 10), `selectFactCounts` (counts by status + oldest unverified
+  assumption), `selectDecisionsWaiting`, `selectOverdueTasks`,
+  `selectTimeScaleStrip` (groups scenarios by `horizon`: hours / two_days /
+  two_weeks, no `now` — purely scenario-driven), `selectMiniMapFeatures`,
+  `selectSyncHealth(outbox, conflicts)`, `selectConflictCount`, `formatHms`.
+  RAG is **derived** — the plan's entity catalogue has no `function_status`
+  entity: red = overdue task or no `function_lead` shift covering `now`;
+  amber = open tasks; green otherwise. `lastUpdate` per function = newest
+  `createdAtClient` among that function's task/shift/briefing_report records.
+- `packages/shared/src/geometry.ts`: `geometryBounds()` (union bounds of a
+  feature's geometry, via `deserializeGeometry`) for the mini-map projection.
+- `apps/web/src/pages/Dashboard.tsx` (new): all 12 widgets from local data only
+  (works offline): header with status + elapsed time, mission & direction
+  (divergence flag), next-briefing countdown, shift changes next 4 h, function
+  status board (RAG dots + legend), latest log entries, fact/assumption/unknown
+  counts + oldest assumption, decisions waiting, overdue tasks, time-scale strip
+  (now / 48 h / 2 weeks), static-SVG mini map (severity colours, equirectangular
+  projection — no WebGL/MapLibre, jsdom-testable), sync health (conflicts /
+  rejected / pending from the outbox). Testable core `Dashboard` (props:
+  `store`, `incidentId`, `functions`, `members`, `incident` — no fetch) +
+  default-export `DashboardPage` wrapper (fetches `/api/incidents/:id`). 1 s
+  `now` tick; records/outbox re-read every 5 s (sync engine has no
+  record-level events).
+- `apps/web/src/App.tsx`: route `incidents/:id/dashboard` (next to
+  `incidents/:id`, behind `RequireAuth`).
+- `apps/web/src/pages/IncidentDetail.tsx`: `chief_of_staff` / `deputy_chief`
+  land on the dashboard by default — guarded by a per-incident sessionStorage
+  flag, once per browser session, so the dashboard's "Tillbaka" link reaches the
+  workspace without a redirect loop. The flag is read synchronously during
+  render (no workspace flash) and set in the effect that navigates.
+- `apps/web/src/locales/{sv,en}.json`: `dashboard.*` keys, sv + en parity.
+- Tests: `packages/shared/src/dashboard.test.ts` (37 selector tests, incl.
+  mixed-record-bag block and time-ordered latest-challenge),
+  `packages/shared/src/geometry.test.ts` (+5 bounds tests),
+  `apps/web/src/pages/Dashboard.test.tsx` (3 fixture-render tests: every widget,
+  sync health from outbox + conflict count, empty states).
+- **Fixed latent M30 bug** (surfaced by the new e2e flow): `MapDraw` never
+  called `td.start()`, and terra-draw 1.x only calls `adapter.register()` from
+  `start()` — so the `stabsstod-drawn-features` GeoJSON source was never added
+  and `setFeatures()` threw on the missing source, crashing the whole app as
+  soon as the map tab mounted with a drawing context. Previously masked because
+  the M29 e2e assertion resolved before the crash. Fix: `td.start()` in
+  `MapDraw` (+ `td.stop()` cleanup) and a defensive `applyToMap()` in
+  `MapLibreAdapter` (no-op when the source is missing).
+- `e2e/tests/map.test.ts`: steps back from the dashboard via "Tillbaka" before
+  opening the Karta tab (the creator is `chief_of_staff`, so the dashboard is
+  now the default landing).
+
+**Learned:**
+- terra-draw v1: the adapter is registered (and thus our GeoJSON source/layers
+  added) only when `td.start()` runs — not by the `TerraDraw` constructor.
+  Custom adapters doing map work in `register()` need an explicit `start()`.
+- A page-redirect to another page (workspace → dashboard) needs a per-entity
+  "already visited" guard (sessionStorage), read synchronously in render, or
+  the back link loops and the original page flashes before redirecting.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(286 shared + 86 api + 125 web); e2e 2 passed (map + smoke); `docker compose
+up --build -d` + `scripts/smoke.sh` pass.
+
+**Left over (carried):** M30 feature persistence after reload e2e (should now
+be viable with the MapDraw crash fixed). M31 known defects, not yet fixed:
+(1) `apps/api/src/geo.ts` — combined search results sorted by name, not by
+similarity (`sim` selected in SQL but dropped in row mapping); (2)
+`GeoSearch.tsx` `markAsAffected` POSTs to `/api/sync/push` with a fabricated
+HLC/deviceId, bypassing the local store outbox and `can()` (offline-first
+violation); (3) `geo.test.ts` fixture fragility — expects `Stockholms län` but
+the idempotent insert writes `Stockholms lan` (passes only because an earlier
+run inserted the ä row; a fresh DB would fail). Earlier: API tests pollute
+runtime DB (recommend `TEST_DATABASE_URL`); M18 diff labels show authors, not
+Stockholm 24h times; M19 plain conflict badge only; M20 acknowledge disabled
+until a mission exists.
+Next: M33.
+
 ## M31 — Administrative areas and search — done (2026-11-14)
 
 **Done:**

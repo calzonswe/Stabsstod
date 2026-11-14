@@ -7,6 +7,7 @@ import ChangePassword from './pages/ChangePassword.js';
 import Incidents from './pages/Incidents.js';
 import CreateIncident from './pages/CreateIncident.js';
 import IncidentDetail from './pages/IncidentDetail.js';
+import DashboardPage from './pages/Dashboard.js';
 import Users from './pages/Users.js';
 import Settings from './pages/Settings.js';
 
@@ -195,6 +196,14 @@ export default function App() {
                 <RequireAdmin>
                   <CreateIncident />
                 </RequireAdmin>
+              ),
+            },
+            {
+              path: 'incidents/:id/dashboard',
+              element: (
+                <RequireAuth>
+                  <DashboardPage />
+                </RequireAuth>
               ),
             },
             {

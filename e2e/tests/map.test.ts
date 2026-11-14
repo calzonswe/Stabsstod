@@ -53,6 +53,16 @@ test('map tab renders the local basemap without external requests', async ({ pag
   const { incident } = (await created.json()) as { incident: { id: string } };
 
   await page.goto(`/incidents/${incident.id}`);
+  // M32: the creator is chief_of_staff and therefore lands on the dashboard
+  // by default (once per browser session, per incident). The map lives in the
+  // workspace — step back via the dashboard's "Tillbaka" link.
+  const backLink = page.getByRole('link', { name: 'Tillbaka' });
+  await expect(backLink).toBeVisible({ timeout: 15_000 });
+  await backLink.click();
+  await page.waitForURL((url) => url.pathname === `/incidents/${incident.id}`);
+  await expect(page.getByRole('button', { name: 'Karta' })).toBeVisible({
+    timeout: 15_000,
+  });
   await page.getByRole('button', { name: 'Karta' }).click();
 
   if (existsSync(MAP_FILE)) {

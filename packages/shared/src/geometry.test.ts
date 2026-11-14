@@ -7,6 +7,7 @@ import {
   circleToPolygon,
   deserializeGeometry,
   distanceMeters,
+  geometryBounds,
   serializeGeometry,
   METRES_PER_DEGREE_LAT,
 } from './geometry.js';
@@ -133,6 +134,76 @@ describe('geometry (M30)', () => {
       };
       expect(serializeGeometry(poly as never)).toBe(poly);
       expect(serializeGeometry(null)).toBeNull();
+    });
+  });
+
+  describe('geometryBounds', () => {
+    it('computes bounds for a Point', () => {
+      const b = geometryBounds({ type: 'Point', coordinates: [16.0, 63.0] });
+      expect(b).toEqual({ minLon: 16.0, minLat: 63.0, maxLon: 16.0, maxLat: 63.0 });
+    });
+
+    it('computes bounds for a Polygon spanning multiple rings and coordinates', () => {
+      const b = geometryBounds({
+        type: 'Polygon',
+        coordinates: [
+          [
+            [16.0, 63.0],
+            [17.0, 63.0],
+            [17.0, 64.0],
+            [16.0, 63.0],
+          ],
+        ],
+      });
+      expect(b).toEqual({ minLon: 16.0, minLat: 63.0, maxLon: 17.0, maxLat: 64.0 });
+    });
+
+    it('computes bounds for a MultiPolygon (nested)', () => {
+      const b = geometryBounds({
+        type: 'MultiPolygon',
+        coordinates: [
+          [
+            [
+              [10.0, 60.0],
+              [12.0, 60.0],
+              [12.0, 61.0],
+              [10.0, 60.0],
+            ],
+          ],
+          [
+            [
+              [5.0, 59.0],
+              [6.0, 59.0],
+              [6.0, 62.5],
+              [5.0, 59.0],
+            ],
+          ],
+        ],
+      });
+      expect(b).toEqual({ minLon: 5.0, minLat: 59.0, maxLon: 12.0, maxLat: 62.5 });
+    });
+
+    it('computes bounds for a MultiLineString', () => {
+      const b = geometryBounds({
+        type: 'MultiLineString',
+        coordinates: [
+          [
+            [16.0, 63.0],
+            [16.5, 63.2],
+          ],
+          [
+            [15.0, 62.0],
+            [15.5, 64.9],
+          ],
+        ],
+      });
+      expect(b).toEqual({ minLon: 15.0, minLat: 62.0, maxLon: 16.5, maxLat: 64.9 });
+    });
+
+    it('returns null for null/undefined and empty coordinates', () => {
+      expect(geometryBounds(null)).toBeNull();
+      expect(geometryBounds(undefined)).toBeNull();
+      expect(geometryBounds({ type: 'Polygon', coordinates: [] })).toBeNull();
     });
   });
 

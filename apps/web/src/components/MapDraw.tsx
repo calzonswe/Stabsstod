@@ -134,6 +134,11 @@ export default function MapDraw(props: MapDrawProps) {
     });
     tdRef.current = td;
     adapterRef.current = adapter;
+    // start() registers the adapter with terra-draw, which adds the
+    // GeoJSON source/layers to the map (adapter.register → ensureLayers).
+    // Without it, adapter.setFeatures() would read a missing source and
+    // throw.
+    td.start();
 
     // Load existing features from the local store into terra-draw.
     const tfFeatures = features
@@ -142,7 +147,13 @@ export default function MapDraw(props: MapDrawProps) {
     adapter.setFeatures(tfFeatures);
 
     return () => {
-      // terra-draw v1 has no explicit destroy; dropping refs is sufficient.
+      // terra-draw v1 has no explicit destroy; stop() unregisters the
+      // adapter's event listeners, dropping the refs is sufficient otherwise.
+      try {
+        td.stop();
+      } catch {
+        // The map may already be gone (e.g. tab switch); ignore.
+      }
       tdRef.current = null;
       adapterRef.current = null;
     };

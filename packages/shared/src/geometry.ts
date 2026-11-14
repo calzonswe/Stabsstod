@@ -102,6 +102,49 @@ export function serializeGeometry(
   return geometry;
 }
 
+export interface GeometryBounds {
+  minLon: number;
+  minLat: number;
+  maxLon: number;
+  maxLat: number;
+}
+
+/**
+ * Bounding box (degrees) of a storable geometry: the min/max of every
+ * coordinate pair across all points/lines/rings. Returns null when the
+ * geometry has no coordinates.
+ */
+export function geometryBounds(
+  geometry: StorableGeometry | null | undefined,
+): GeometryBounds | null {
+  if (!geometry) return null;
+  let minLon = Infinity;
+  let minLat = Infinity;
+  let maxLon = -Infinity;
+  let maxLat = -Infinity;
+  let found = false;
+  const descend = (coords: unknown): void => {
+    if (!Array.isArray(coords)) return;
+    if (
+      coords.length >= 2 &&
+      typeof coords[0] === 'number' &&
+      typeof coords[1] === 'number'
+    ) {
+      const lon = coords[0];
+      const lat = coords[1];
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      found = true;
+      return;
+    }
+    for (const item of coords) descend(item);
+  };
+  descend(geometry.coordinates);
+  return found ? { minLon, minLat, maxLon, maxLat } : null;
+}
+
 /** Great-circle-ish distance in metres between two [lon, lat] points. */
 export function distanceMeters(a: [number, number], b: [number, number]): number {
   const [lon1, lat1] = a;
