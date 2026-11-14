@@ -1,4 +1,4 @@
-// Map — plan.md §5.7 / M29
+// Map — plan.md §5.7 / M29 + M30
 //
 // Basemap rendered entirely from locally served data:
 //   - vector tiles: /tiles/sweden.pmtiles via the pmtiles:// protocol
@@ -9,8 +9,10 @@
 //
 // If the PMTiles file is not on the server (e.g. not fetched yet), a
 // friendly card with a retry button is shown instead of a broken map.
-// An optional raster "online" layer can be configured in the settings
-// (map.onlineTileUrl) and toggled from a button on the map.
+//
+// M30: when store/incidentId/authorId are provided, terra-draw drawing is
+// enabled on top of the basemap (point, line, polygon, circle, edit, select).
+// Drawn features are saved as versioned `map_feature` records.
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,12 +26,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 const MapLibreGL = MapLibreGLDefault as unknown as typeof import('maplibre-gl').MapLibreGL;
 import { Protocol } from 'pmtiles';
 import { layers, namedTheme } from 'protomaps-themes-base';
+import MapDraw from '../components/MapDraw.js';
+import type { LocalStore } from '../localStore.js';
 
 const PMTILES_PATH = '/tiles/sweden.pmtiles';
 const PMTILES_SOURCE_URL = `pmtiles://${PMTILES_PATH}`;
 // MapLibre's normalizeSpriteURL requires an absolute URL with a protocol
 // (/^(\w+):\/\/.../), so build sprite/glyph bases from window.location.origin.
-// Same-origin only, still fully offline-safe; jsdom origin is 'http://localhost'.
+// Same-origin only, still fully offline-safe; jsdom origin is 'http://localhost:3000'.
 const GLYPHS_URL = `${window.location.origin}/map-assets/fonts/{fontstack}/{range}.pbf`;
 const SPRITE_URL = `${window.location.origin}/map-assets/sprites/light`;
 const ATTRIBUTION = '© OpenStreetMap contributors · © Protomaps';
@@ -85,7 +89,19 @@ async function fetchOnlineTileUrl(): Promise<string | null> {
   }
 }
 
-export default function Map() {
+interface MapProps {
+  store?: LocalStore | null;
+  incidentId?: string;
+  authorId?: string;
+  functionId?: string | null;
+}
+
+export default function Map({
+  store,
+  incidentId,
+  authorId,
+  functionId,
+}: MapProps = {}) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapInstance | null>(null);
@@ -172,6 +188,8 @@ export default function Map() {
     map.setLayoutProperty('online-tiles-layer', 'visibility', next ? 'visible' : 'none');
   }
 
+  const hasDrawingContext = Boolean(store && incidentId && authorId);
+
   return (
     <div className="relative h-full w-full">
       <div
@@ -202,6 +220,15 @@ export default function Map() {
             </button>
           </div>
         </div>
+      )}
+      {status === 'ready' && mapLoaded && hasDrawingContext && (
+        <MapDraw
+          map={mapRef.current}
+          store={store!}
+          incidentId={incidentId!}
+          authorId={authorId!}
+          functionId={functionId ?? null}
+        />
       )}
       {status === 'ready' && mapLoaded && onlineTileUrl && (
         <button

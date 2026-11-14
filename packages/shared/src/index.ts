@@ -38,9 +38,12 @@ export {
 } from './entityRegistry.js';
 export type { ResourcePayload } from './entityRegistry.js';
 export type { AttachmentPayload } from './entityRegistry.js';
+export type { MapFeaturePayload } from './entityRegistry.js';
+export { MapFeatureSeverity, MapFeatureLayer, MapFeatureValidity } from './entityRegistry.js';
 export type { BriefingRecurrence } from './entityRegistry.js';
 export type { TaskLike } from './tasks.js';
 export { isTaskOverdue, groupTasksByStatus, TASK_STATUS_ORDER, TERMINAL_TASK_STATUSES } from './tasks.js';
+export { circleToPolygon, deserializeGeometry, serializeGeometry, distanceMeters, METRES_PER_DEGREE_LAT } from './geometry.js';
 export type { TimelineSource, TimelineItem, TimelineItemSources } from './timeline.js';
 export {
   manualTimelineItems,

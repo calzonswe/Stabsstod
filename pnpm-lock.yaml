@@ -120,6 +120,9 @@ importers:
       tailwindcss:
         specifier: ^4.3.5
         version: 4.3.5
+      terra-draw:
+        specifier: ^1.39.0
+        version: 1.39.0
     devDependencies:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
@@ -3673,6 +3676,9 @@ packages:
   tempy@0.6.0:
     resolution: {integrity: sha512-G13vtMYPT/J8A4X2SjdtBTphZlrp1gKv6hZiOjw14RCWg6GbHuQBGtjlx75xLbYV/wEc0D7G5K4rxKP/cXk8Bw==}
     engines: {node: '>=10'}
+
+  terra-draw@1.39.0:
+    resolution: {integrity: sha512-W9myUqAlxTQYydNM6cI1kmaU3/i9IlNUfzbfjr7sZVfE5YrJ1ogEpMTKKXdlXdON7tB/nMd3sPL26u7CAzCxKA==}
 
   terser@5.51.2:
     resolution: {integrity: sha512-bWnjSNscmuI+GJze6ZupnHP8G/cTcsJF+bXCeQknk2SHQsgbNJnLrqiH9jZ2W4STPVXH2mDKKRX3iwPhc9Cn/Q==}
@@ -7412,6 +7418,8 @@ snapshots:
       temp-dir: 2.0.0
       type-fest: 0.16.0
       unique-string: 2.0.0
+
+  terra-draw@1.39.0: {}
 
   terser@5.51.2:
     dependencies:

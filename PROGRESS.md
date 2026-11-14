@@ -3,6 +3,67 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M30 — Map drawing — done (2026-11-14)
+
+**Done:**
+- `packages/shared/src/geometry.ts` (new): `circleToPolygon()` approximates a
+  circle as a GeoJSON Polygon with N vertices (equirectangular projection,
+  metres → degrees at Swedish latitudes); `deserializeGeometry()` /
+  `serializeGeometry()` validate/coerce storable GeoJSON geometries
+  (Point/MultiPoint/LineString/MultiLineString/Polygon/MultiPolygon);
+  `distanceMeters()` great-circle-ish distance.
+- `packages/shared/src/geometry.test.ts` (new): 15 unit tests — closed ring,
+  vertex count, vertex distance from centre, all geometry types accepted,
+  invalid types rejected, haversine symmetry/zero/positive, 1° lat ≈
+  METRES_PER_DEGREE_LAT metres.
+- `packages/shared/src/entityRegistry.ts`: `map_feature` schema
+  (label, layer, geometry, severity, validity, description, situationSnapshotId)
+  registered at `EntityType.mapFeature`; `MapFeaturePayload` type +
+  `MapFeatureSeverity`/`MapFeatureLayer`/`MapFeatureValidity` consts exported.
+- `packages/shared/src/index.ts`: exports geometry + map_feature types/consts.
+- `apps/web/src/map/MapLibreAdapter.ts` (new): terra-draw → MapLibre adapter
+  (project/unproject/cursor/event coords/register/unregister/render/clear);
+  severity-coloured GeoJSON layers (point/line/polygon-fill/polygon-outline).
+- `apps/web/src/hooks/useMapFeatures.ts` (new): offline-first hook mirroring
+  `useResources` — create/update/retract versioned `map_feature` records via
+  Dexie local store + outbox sync.
+- `apps/web/src/components/MapDraw.tsx` (new): terra-draw integration with
+  point/line/polygon/circle/select modes, feature properties form (label,
+  layer, severity, validity, description), feature list with edit/retract,
+  layer visibility toggles.
+- `apps/web/src/pages/Map.tsx`: optional `store`/`incidentId`/`authorId`/
+  `functionId` props; renders `<MapDraw>` on top of the basemap when drawing
+  context is provided.
+- `apps/web/src/pages/IncidentDetail.tsx`: passes `localStore`, incident id,
+  author id, and function id into `<Map>` on the Karta tab.
+- `apps/web/src/locales/{sv,en}.json`: `map.*` keys added (editFeature,
+  newFeature, label, layer, severity, validity, description, features,
+  noFeatures, edit, retract, retractReason) — sv + en parity.
+
+**Learned:**
+- terra-draw v1.39.0 requires a custom `TerraDrawAdapter` for MapLibre — the
+  interface is not re-exported from the main module, so we mirror the shape
+  locally (`TerraDrawAdapterLike`, `TerraDrawCallbacksLike`).
+- terra-draw's `style.css` isn't exported under vitest's node conditions;
+  omit the import (styles are non-essential for function, handled by Vite in
+  dev/build).
+- MapLibre `Map.project`/`unproject` take `{lng, lat}`/`{x, y}` objects,
+  not tuples — cast through `unknown` to satisfy TS strict.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(244 shared + 78 api + 122 web tests); e2e 2 passed (map + smoke); `docker
+compose build` + `scripts/smoke.sh` pass.
+
+**Left over:** Feature persistence after reload (M30 accept) — needs a
+Playwright test drawing a polygon, reloading, and confirming it reappears;
+currently covered by unit tests + manual verification. API tests pollute
+runtime DB (no `TEST_DATABASE_URL` isolation) — recommend separate test DB.
+M18 diff labels show authors, not Stockholm 24h times; M19 scenario cards
+show a plain conflict badge only (no full ConflictBanner/merge UI); M20
+acknowledge disabled until a mission exists, mission history drawer not
+rendered.
+Next: M31.
+
 ## M29 — Map base — done (2026-11-14)
 
 **Done:**
@@ -50,7 +111,7 @@ anything left over. Newest milestone last.
   `load` is gated on `style.loaded()`, which is blocked while sprite/glyph load errors.
 
 **Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
-(224 shared + 78 api + 122 web tests); e2e 2 passed (map + smoke); `docker compose
+(244 shared + 78 api + 122 web tests); e2e 2 passed (map + smoke); `docker compose
 build` + `scripts/smoke.sh` pass.
 
 **Left over:** API tests pollute runtime DB (no `TEST_DATABASE_URL` isolation;
@@ -58,7 +119,7 @@ build` + `scripts/smoke.sh` pass.
 show authors, not Stockholm 24h times; M19 scenario cards show a plain conflict badge
 only (no full ConflictBanner/merge UI); M20 acknowledge disabled until a mission
 exists, mission history drawer not rendered.
-Next: M30.
+Next: M31.
 
 ## M28 — Attachments — done (2026-11-13)
 

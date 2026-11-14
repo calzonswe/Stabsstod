@@ -337,7 +337,12 @@ export default function IncidentWorkspace() {
               {t('incidents.workspace.map')}
             </h2>
             <div className="h-96 w-full">
-              <Map />
+              <Map
+                store={localStore}
+                incidentId={id!}
+                authorId={user?.id ?? ''}
+                functionId={myMember?.functionIds[0] ?? null}
+              />
             </div>
           </div>
         )}

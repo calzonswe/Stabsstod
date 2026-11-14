@@ -569,5 +569,17 @@
   "map.missingTitle": "Kartfil saknas",
   "map.missingBody": "Ingen PMTiles-kartfil finns på servern. Lägg en fil på data/maps/sweden.pmtiles och starta om.",
   "map.retry": "Försök igen",
-  "map.onlineLayer": "Lager: karta online"
+  "map.onlineLayer": "Lager: karta online",
+  "map.editFeature": "Redigera objekt",
+  "map.newFeature": "Nytt kartobjekt",
+  "map.label": "Namn",
+  "map.layer": "Lager",
+  "map.severity": "Allvarlighetsgrad",
+  "map.validity": "Giltighet",
+  "map.description": "Beskrivning",
+  "map.features": "Kartobjekt",
+  "map.noFeatures": "Inga kartobjekt än",
+  "map.edit": "Redigera",
+  "map.retract": "Återkalla",
+  "map.retractReason": "Anledning till återkallelse"
 }

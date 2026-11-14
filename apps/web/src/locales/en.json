@@ -569,5 +569,17 @@
   "map.missingTitle": "Map file missing",
   "map.missingBody": "No PMTiles map file found on the server. Place a file at data/maps/sweden.pmtiles and restart.",
   "map.retry": "Retry",
-  "map.onlineLayer": "Layer: online map"
+  "map.onlineLayer": "Layer: online map",
+  "map.editFeature": "Edit feature",
+  "map.newFeature": "New map feature",
+  "map.label": "Name",
+  "map.layer": "Layer",
+  "map.severity": "Severity",
+  "map.validity": "Validity",
+  "map.description": "Description",
+  "map.features": "Map features",
+  "map.noFeatures": "No map features yet",
+  "map.edit": "Edit",
+  "map.retract": "Retract",
+  "map.retractReason": "Reason for retraction"
 }

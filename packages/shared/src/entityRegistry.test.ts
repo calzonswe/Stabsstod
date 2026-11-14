@@ -889,3 +889,99 @@ describe('attachment payload schema', () => {
     ).toBe(true);
   });
 });
+
+// map_feature — M30
+const mapFeatureBase = {
+  label: 'Översvämning vid Lilla Bommen',
+  layer: 'situation',
+  geometry: {
+    type: 'Polygon',
+    coordinates: [[[16.0, 63.0], [17.0, 63.0], [17.0, 64.0], [16.0, 63.0]]],
+  },
+  severity: 'warning',
+  validity: 'now',
+};
+
+describe('map_feature payload schema', () => {
+  it('accepts a valid feature in every layer, severity and validity', () => {
+    const layers = ['situation', 'operations', 'logistics'] as const;
+    const severities = ['info', 'warning', 'severe'] as const;
+    const validities = ['now', 'forecast', 'planning'] as const;
+    for (const layer of layers) {
+      for (const severity of severities) {
+        for (const validity of validities) {
+          expect(
+            validateEntityPayload(EntityType.mapFeature, {
+              ...mapFeatureBase,
+              layer,
+              severity,
+              validity,
+            }).success,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('accepts Point, LineString and Polygon geometries', () => {
+    const geometries = [
+      { type: 'Point', coordinates: [16.0, 63.0] },
+      { type: 'LineString', coordinates: [[16.0, 63.0], [17.0, 63.0]] },
+      { type: 'Polygon', coordinates: [[[16.0, 63.0], [17.0, 63.0], [17.0, 64.0], [16.0, 63.0]]] },
+    ];
+    for (const geometry of geometries) {
+      expect(
+        validateEntityPayload(EntityType.mapFeature, {
+          ...mapFeatureBase,
+          geometry,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('accepts optional description and situationSnapshotId', () => {
+    expect(
+      validateEntityPayload(EntityType.mapFeature, {
+        ...mapFeatureBase,
+        description: 'Vatten över vägen, avstängt.',
+        situationSnapshotId: 'snapshot-1',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects empty label and unknown layer/severity/validity', () => {
+    expect(
+      validateEntityPayload(EntityType.mapFeature, {
+        ...mapFeatureBase,
+        label: '',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.mapFeature, {
+        ...mapFeatureBase,
+        layer: 'air',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.mapFeature, {
+        ...mapFeatureBase,
+        severity: 'extreme',
+      }).success,
+    ).toBe(false);
+    expect(
+      validateEntityPayload(EntityType.mapFeature, {
+        ...mapFeatureBase,
+        validity: 'always',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a non-GeoJSON geometry type', () => {
+    expect(
+      validateEntityPayload(EntityType.mapFeature, {
+        ...mapFeatureBase,
+        geometry: { type: 'Circle', coordinates: [] },
+      }).success,
+    ).toBe(false);
+  });
+});

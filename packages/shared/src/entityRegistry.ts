@@ -459,6 +459,57 @@ export const AttachmentType = {
 
 export type AttachmentType = (typeof AttachmentType)[keyof typeof AttachmentType];
 
+// map_feature — M30: a drawn map feature (point, line, polygon, circle).
+// Circles are stored as polygons (GeoJSON has no circle type), see geometry.ts.
+export const MapFeatureSeverity = {
+  info: 'info',
+  warning: 'warning',
+  severe: 'severe',
+} as const;
+
+export type MapFeatureSeverity = (typeof MapFeatureSeverity)[keyof typeof MapFeatureSeverity];
+
+export const MapFeatureLayer = {
+  situation: 'situation',
+  operations: 'operations',
+  logistics: 'logistics',
+} as const;
+
+export type MapFeatureLayer = (typeof MapFeatureLayer)[keyof typeof MapFeatureLayer];
+
+export const MapFeatureValidity = {
+  now: 'now',
+  forecast: 'forecast',
+  planning: 'planning',
+} as const;
+
+export type MapFeatureValidity = (typeof MapFeatureValidity)[keyof typeof MapFeatureValidity];
+
+const geometrySchema = z.object({
+  type: z.enum([
+    'Point',
+    'MultiPoint',
+    'LineString',
+    'MultiLineString',
+    'Polygon',
+    'MultiPolygon',
+  ]),
+  // GeoJSON coordinates — structure depends on `type`. Validated client-side
+  // by geometry.deserializeGeometry before saving.
+  coordinates: z.any(),
+});
+
+const mapFeatureSchema = z.object({
+  label: z.string().min(1),
+  layer: z.enum(['situation', 'operations', 'logistics']),
+  geometry: geometrySchema,
+  severity: z.enum(['info', 'warning', 'severe']),
+  validity: z.enum(['now', 'forecast', 'planning']),
+  description: z.string().optional(),
+  // Optional link to a situation_snapshot entity (entityId).
+  situationSnapshotId: z.string().optional(),
+});
+
 const attachmentSchema = z.object({
   filename: z.string().min(1),
   mime: z.string().min(1),
@@ -485,6 +536,7 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.actor, actorSchema],
   [EntityType.resource, resourceSchema],
   [EntityType.attachment, attachmentSchema],
+  [EntityType.mapFeature, mapFeatureSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -525,3 +577,4 @@ export type ActorRelation = z.infer<typeof actorRelationSchema>;
 export type ActorPayload = z.infer<typeof actorSchema>;
 export type ResourcePayload = z.infer<typeof resourceSchema>;
 export type AttachmentPayload = z.infer<typeof attachmentSchema>;
+export type MapFeaturePayload = z.infer<typeof mapFeatureSchema>;
