@@ -8,6 +8,7 @@ import Incidents from './pages/Incidents.js';
 import CreateIncident from './pages/CreateIncident.js';
 import IncidentDetail from './pages/IncidentDetail.js';
 import DashboardPage from './pages/Dashboard.js';
+import FunctionHomePage from './pages/FunctionHome.js';
 import Users from './pages/Users.js';
 import Settings from './pages/Settings.js';
 
@@ -203,6 +204,14 @@ export default function App() {
               element: (
                 <RequireAuth>
                   <DashboardPage />
+                </RequireAuth>
+              ),
+            },
+            {
+              path: 'incidents/:id/home',
+              element: (
+                <RequireAuth>
+                  <FunctionHomePage />
                 </RequireAuth>
               ),
             },

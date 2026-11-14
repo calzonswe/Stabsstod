@@ -3,6 +3,77 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M33 — Function workspace home — done (2026-11-14)
+
+**Done:**
+- `packages/shared/src/functionHome.ts` (new): pure selectors for the function home.
+  All take the incident's full mixed record bag + `HomeIdentity`
+  (`{ userId, functionIds }`) + an injected `now` (epoch ms):
+  `selectMyTasks` (non-terminal, `assigneeUserId === me`, due asc / no-due last,
+  `overdue` flag), `selectUpcomingBriefing` (next occurrence via
+  `nextBriefingTime`; `missingReports` = my functions with no non-retracted
+  report for that briefing), `selectMyShift` (current = covering `now` incl.
+  boundaries, next = earliest future, `handoverNotes` = notes addressed to me
+  OR tied to my current/next shift, newest first), `selectNeedsAttention`
+  (kinds in fixed urgency order: `task_overdue` → `task_blocked` →
+  `decision_needed` (open request with `neededBy` in my functions) →
+  `briefing_report_pending` → `shift_soon` (next shift starts within
+  `SHIFT_SOON_WINDOW_MS` = 30 min)). Exported from the package index; 14 unit
+  tests.
+- `apps/web/src/pages/FunctionHome.tsx` (new): testable core `FunctionHome`
+  (no fetch; props: `store`, `incidentId`, `functions`, `members`, `incident`,
+  `me`) + default-export `FunctionHomePage` wrapper (fetches
+  `/api/incidents/:id`, same pattern as DashboardPage). Widgets: my tasks
+  (overdue flagged) · upcoming briefing countdown + "Förbered min rapport"
+  shortcut (Link to `?tab=staff`, lists functions missing reports) · my
+  function's status board (reuses `selectFunctionStatusBoard` filtered to my
+  functions) · latest 10 log entries · my current/next shift + handover notes ·
+  items needing my attention. 1 s `now` tick + 5 s store re-read, same as the
+  dashboard.
+- `apps/web/src/pages/IncidentDetail.tsx`: role-specific landing, unified
+  M32/M33 — `chief_of_staff` / `deputy_chief` → `/incidents/:id/dashboard`
+  (flag `dashboard-visited-<id>`), **every other role** →
+  `/incidents/:id/home` (flag `home-visited-<id>`). Flag read synchronously
+  during render (no flash), the navigating effect uses primitive deps
+  (`landingPath`/`landingFlag`). Also: `activeTab` now initializes from a
+  validated `?tab=` search param (deep link for the "prepare my report"
+  shortcut).
+- `apps/web/src/App.tsx`: route `incidents/:id/home` (behind `RequireAuth`).
+- `apps/web/src/locales/{sv,en}.json`: 22 new flat `functionHome.*` keys per
+  language; board/log/RAG widgets reuse `dashboard.functions.*`,
+  `dashboard.log.*`, `dashboard.rag.*` and `tasks.*` keys.
+- Tests: `packages/shared/src/functionHome.test.ts` (14 selector tests),
+  `apps/web/src/pages/FunctionHome.test.tsx` (fixture render: every widget
+  from seeded local records + empty states), `apps/web/src/pages/IncidentDetail.test.tsx`
+  (3 redirect tests: non-chief role → home once per session, chief of staff →
+  dashboard, no re-redirect once the home flag is set — no loop).
+
+**Learned:**
+- The board's open-task count (`selectFunctionStatusBoard`) counts
+  non-terminal statuses, i.e. **blocked tasks count as open** — the home board
+  inherits that; fixture expectations were set to match.
+- The landing guard is per role family, not per role: chief/deputy share the
+  dashboard flag, every other role shares the home flag — one sessionStorage
+  key each, so the "Tillbaka" link back to the workspace never loops.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(300 shared + 86 api + 130 web); e2e 2 passed (map + smoke); `docker compose
+up --build -d` + `scripts/smoke.sh` pass.
+
+**Left over (carried):** M30 feature persistence after reload e2e (should now
+be viable with the MapDraw crash fixed). M31 known defects, not yet fixed:
+(1) `apps/api/src/geo.ts` — combined search results sorted by name, not by
+similarity (`sim` selected in SQL but dropped in row mapping); (2)
+`GeoSearch.tsx` `markAsAffected` POSTs to `/api/sync/push` with a fabricated
+HLC/deviceId, bypassing the local store outbox and `can()` (offline-first
+violation); (3) `geo.test.ts` fixture fragility — expects `Stockholms län` but
+the idempotent insert writes `Stockholms lan` (passes only because an earlier
+run inserted the ä row; a fresh DB would fail). Earlier: API tests pollute
+runtime DB (recommend `TEST_DATABASE_URL`); M18 diff labels show authors, not
+Stockholm 24h times; M19 plain conflict badge only; M20 acknowledge disabled
+until a mission exists.
+Next: M34.
+
 ## M32 — Chief of staff dashboard — done (2026-11-14)
 
 **Done:**

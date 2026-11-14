@@ -109,3 +109,18 @@ export {
   selectConflictCount,
   formatHms,
 } from './dashboard.js';
+export type {
+  HomeIdentity,
+  MyTask,
+  UpcomingBriefingHome,
+  MyShift,
+  MyShiftView,
+  AttentionItem,
+} from './functionHome.js';
+export {
+  SHIFT_SOON_WINDOW_MS,
+  selectMyTasks,
+  selectUpcomingBriefing,
+  selectMyShift,
+  selectNeedsAttention,
+} from './functionHome.js';
