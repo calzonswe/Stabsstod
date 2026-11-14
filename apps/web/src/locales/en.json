@@ -581,5 +581,9 @@
   "map.noFeatures": "No map features yet",
   "map.edit": "Edit",
   "map.retract": "Retract",
-  "map.retractReason": "Reason for retraction"
+  "map.retractReason": "Reason for retraction",
+  "geo.searchPlaceholder": "Search place or area",
+  "geo.searching": "Searching…",
+  "geo.noBoundary": "No boundary to mark",
+  "geo.markAffected": "Mark as affected area"
 }

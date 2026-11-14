@@ -12,7 +12,7 @@ import MapLibreGLDefault from 'maplibre-gl';
 
 const MapLibreGL = MapLibreGLDefault as unknown as typeof import('maplibre-gl').MapLibreGL; // eslint-disable-line @typescript-eslint/no-unused-vars
 
-type MapInstance = InstanceType<typeof MapLibreGL.Map>;
+export type MapInstance = InstanceType<typeof MapLibreGL.Map>;
 
 // Minimal GeoJSON types (no @types/geojson dependency).
 export interface GeoJSONGeometry {

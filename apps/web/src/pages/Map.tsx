@@ -27,6 +27,7 @@ const MapLibreGL = MapLibreGLDefault as unknown as typeof import('maplibre-gl').
 import { Protocol } from 'pmtiles';
 import { layers, namedTheme } from 'protomaps-themes-base';
 import MapDraw from '../components/MapDraw.js';
+import GeoSearch from '../components/GeoSearch.js';
 import type { LocalStore } from '../localStore.js';
 
 const PMTILES_PATH = '/tiles/sweden.pmtiles';
@@ -227,6 +228,15 @@ export default function Map({
           store={store!}
           incidentId={incidentId!}
           authorId={authorId!}
+          functionId={functionId ?? null}
+        />
+      )}
+      {status === 'ready' && mapLoaded && (
+        <GeoSearch
+          map={mapRef.current}
+          store={store ?? null}
+          incidentId={incidentId ?? ''}
+          authorId={authorId ?? ''}
           functionId={functionId ?? null}
         />
       )}

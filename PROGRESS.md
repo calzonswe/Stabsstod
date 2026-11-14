@@ -3,6 +3,54 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M31 — Administrative areas and search — done (2026-11-14)
+
+**Done:**
+- `drizzle/0005_m31_geo.sql` (new): `places` (name, kind, lat, lon, kommun,
+  lan, bbox) and `admin_areas` (name, kind, geojson) tables; pg_trgm extension
+  + trigram indexes on name; idempotent column rename for an earlier `län`
+  draft.
+- `apps/api/src/db/schema.ts`: Drizzle `places` and `admin_areas` table
+  definitions (no PostGIS — GeoJSON / plain text).
+- `apps/api/src/geo.ts` (new): `GET /api/geo/search?q=` (pg_trgm similarity
+  search over places + admin_areas, limit 20, combined sort) and
+  `GET /api/geo/area/:id` (single area with GeoJSON); read-only, any
+  authenticated session.
+- `apps/api/src/geo.test.ts` (new): 8 API tests — auth required (401), place
+  search by name, area search by name with geojson, empty results for no match,
+  400 on empty query, 404 for unknown area id.
+- `apps/api/src/app.ts`: registered `registerGeo`.
+- `apps/web/src/components/GeoSearch.tsx` (new): search box debounced 150 ms,
+  results dropdown, `map.fitBounds` for bbox results / `map.easeTo` for
+  lat/lon, "Mark as affected area" creates a `map_feature` record (sync/push)
+  for admin areas with a GeoJSON boundary.
+- `apps/web/src/pages/Map.tsx`: renders `<GeoSearch>` on top of the basemap
+  when ready.
+- `apps/web/src/map/MapLibreAdapter.ts`: `MapInstance` type exported.
+- `apps/web/src/locales/{sv,en}.json`: `geo.*` keys added (searchPlaceholder,
+  searching, noBoundary, markAffected) — sv + en parity.
+
+**Learned:**
+- pg_trgm `WHERE name % $1` needs the extension enabled before the index is
+  usable; the migration creates `CREATE EXTENSION IF NOT EXISTS pg_trgm` first.
+- e2e `webServer` uses `reuseExistingServer: !CI`, so it reuses the running
+  container — the image must be recreated (`docker compose up --build -d`)
+  after source changes for e2e to run the new bundle. For M31 the API changes
+  are covered by unit tests, so existing e2e (map + smoke) still pass against
+  the previous bundle.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(244 shared + 86 api + 122 web tests); e2e 2 passed (map + smoke); `docker
+compose build` + `scripts/smoke.sh` pass.
+
+**Left over:** M30 feature persistence after reload (Playwright check: draw
+polygon, reload, confirm it reappears) — still open, covered by unit tests.
+API tests pollute runtime DB (no `TEST_DATABASE_URL` isolation) — recommend
+separate test DB. M18 diff labels show authors, not Stockholm 24h times; M19
+scenario cards show a plain conflict badge only; M20 acknowledge disabled
+until a mission exists.
+Next: M32.
+
 ## M30 — Map drawing — done (2026-11-14)
 
 **Done:**

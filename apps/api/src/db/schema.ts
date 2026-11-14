@@ -1,6 +1,7 @@
 import {
   bigserial,
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -131,3 +132,27 @@ export const records = pgTable(
     incidentEntityIdx: index('records_incident_id_entity_id_idx').on(t.incidentId, t.entityId),
   }),
 );
+
+// ---------------------------------------------------------------------------
+// Non-operational reference tables: places and administrative areas (M31).
+// No PostGIS — geometry is stored as GeoJSON / plain text bbox.
+// ---------------------------------------------------------------------------
+
+export const places = pgTable('places', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  kind: text('kind').notNull(), // place | commune | county | street | address
+  lat: doublePrecision('lat').notNull(),
+  lon: doublePrecision('lon').notNull(),
+  kommun: text('kommun'),
+  lan: text('lan'),
+  bbox: text('bbox'), // "minLon,minLat,maxLon,maxLat"
+});
+
+export const adminAreas = pgTable('admin_areas', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  kind: text('kind').notNull(), // county | municipality
+  geojson: jsonb('geojson').notNull(), // GeoJSON Polygon/MultiPolygon geometry
+});
+

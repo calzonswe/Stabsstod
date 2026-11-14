@@ -581,5 +581,9 @@
   "map.noFeatures": "Inga kartobjekt än",
   "map.edit": "Redigera",
   "map.retract": "Återkalla",
-  "map.retractReason": "Anledning till återkallelse"
+  "map.retractReason": "Anledning till återkallelse",
+  "geo.searchPlaceholder": "Sök plats eller område",
+  "geo.searching": "Söker…",
+  "geo.noBoundary": "Ingen gräns att markera",
+  "geo.markAffected": "Markera som berört område"
 }
