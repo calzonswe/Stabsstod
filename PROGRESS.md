@@ -3,6 +3,54 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M35 — Reports and exports — done (2026-11-15)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: new `sitrepSchema` (title, sections[],
+  generatedAt, snapshot) registered for `EntityType.sitrep`; `SitrepPayload`
+  type exported.
+- `packages/shared/src/dashboard.ts`: `currentPayloads` exported for reuse.
+- `packages/shared/src/sitrep.ts` (new): `selectSitrepSections(records)` — pure
+  selector assembling all sitrep sections (mission, direction, situation,
+  facts, decisions, tasks, resources, timeline, map) from the incident's record
+  bag. Reuses `selectMission`, `selectDirection`, `currentPayloads`. 4 unit
+  tests in `sitrep.test.ts`.
+- `apps/api/src/export.ts` (new): `POST /api/export/archive` — chief/deputy-only
+  endpoint that builds a ZIP (records.json, log.csv, decisions.csv, tasks.csv,
+  attachments/) from the incident's records. Zip-building logic factored into
+  `buildArchive(records, attachments)` for direct Buffer-based testing. 5 unit
+  tests in `export.test.ts` (ZIP contents + access control). `archiver` +
+  `@types/archiver` + `adm-zip` (dev) added as deps. Registered in `app.ts`.
+- `apps/web/src/pages/Sitrep.tsx` (new): printable situation report page at
+  `/incidents/:id/sitrep`. Section selection (9 sections, all on by default),
+  print stylesheet (`@media print` hides controls), print button
+  (`window.print()`), save button creates a `sitrep` record with a frozen
+  snapshot of selected sections. Works offline (reads local store only).
+- `apps/web/src/App.tsx`: route `incidents/:id/sitrep` added.
+- `apps/web/src/locales/{sv,en}.json`: 25 new flat `sitrep.*` keys per
+  language. 4 unit tests in `Sitrep.test.tsx` (section selection, mission
+  rendering, toggle hide, save persistence).
+
+**Learned:**
+- Fastify `inject` converts Buffer response bodies to strings, corrupting
+  binary ZIP data on UTF-8 round-trip. Tested `buildArchive` directly with
+  real Buffers (adm-zip) instead; HTTP test only checks status/headers/PK
+  signature.
+- `chief_of_staff` can only write `decision` records with `mandate:
+  'delegated_chief'` (not `decision_maker`) per `can()` in permissions.ts.
+- `EntityType` needed to be exported as a value (not just a type) from
+  `@stabsstod/shared` index for tests that use `EntityType.mission` etc.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(319 shared + 91 api + 142 web); e2e 2 passed (map + smoke); `docker compose
+up --build -d` + `scripts/smoke.sh` pass.
+
+**Left over (carried):** M30 feature persistence after reload e2e; M31 known
+defects (geo search sort, `markAsAffected` outbox bypass, `Stockholms län/lan`
+fixture); API tests pollute runtime DB; M18 diff labels; M19 plain conflict
+badge; M20 acknowledge. M35: `sitrep` records are stored per-incident with a
+single entityId (`sitrep-<incidentId>`); re-saving creates a new version.
+
 ## M34 — Notifications — done (2026-11-15)
 
 **Done:**

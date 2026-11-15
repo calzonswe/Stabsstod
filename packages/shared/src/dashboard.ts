@@ -31,7 +31,7 @@ import { isTaskOverdue, TERMINAL_TASK_STATUSES } from './tasks.js';
  * `entityType` in `records`. The dashboard feeds each selector the full
  * mixed record bag of an incident, so the filter is required.
  */
-function currentPayloads<T>(records: RecordEnvelope[], entityType: EntityType): T[] {
+export function currentPayloads<T>(records: RecordEnvelope[], entityType: EntityType): T[] {
   const out: T[] = [];
   for (const [, mat] of materialize(records)) {
     const current = mat.current;

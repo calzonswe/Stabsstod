@@ -13,6 +13,7 @@ import { registerAdmin } from './admin.js';
 import { registerIncidents } from './incidents.js';
 import { registerSync } from './sync.js';
 import { registerAttachments } from './attachments.js';
+import { registerExport } from './export.js';
 import { registerGeo } from './geo.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url)); // /app/apps/api/src
@@ -94,6 +95,7 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   registerIncidents(app, pool);
   registerSync(app, pool);
   registerAttachments(app, pool);
+  registerExport(app, pool);
   registerGeo(app, pool);
 
   app.addHook('onClose', async () => {

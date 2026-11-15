@@ -518,6 +518,29 @@ const attachmentSchema = z.object({
   linkedEntityIds: z.array(z.string().min(1)),
 });
 
+// sitrep — M35: a saved situation report. Freezes a copy of the selected
+// sections' data so it can be re-printed later from the record itself rather
+// than re-derived (which could show different data as the incident evolves).
+const sitrepSchema = z.object({
+  title: z.string().min(1),
+  sections: z.array(
+    z.enum([
+      'mission',
+      'direction',
+      'situation',
+      'facts',
+      'decisions',
+      'tasks',
+      'resources',
+      'map',
+      'timeline',
+    ]),
+  ),
+  generatedAt: z.string().datetime(),
+  /** Frozen copy of the selected sections' data, keyed by section id. */
+  snapshot: z.record(z.string(), z.unknown()),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -537,6 +560,7 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.resource, resourceSchema],
   [EntityType.attachment, attachmentSchema],
   [EntityType.mapFeature, mapFeatureSchema],
+  [EntityType.sitrep, sitrepSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -578,3 +602,4 @@ export type ActorPayload = z.infer<typeof actorSchema>;
 export type ResourcePayload = z.infer<typeof resourceSchema>;
 export type AttachmentPayload = z.infer<typeof attachmentSchema>;
 export type MapFeaturePayload = z.infer<typeof mapFeatureSchema>;
+export type SitrepPayload = z.infer<typeof sitrepSchema>;

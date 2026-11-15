@@ -1,6 +1,6 @@
 // @stabsstod/shared — pure logic: record model, HLC, materialization, permissions, entity schemas.
-export type { EntityType, RecordEnvelope, RetractPayload } from './record.js';
-export { RecordEnvelopeSchema, newRecord } from './record.js';
+export type { RecordEnvelope, RetractPayload } from './record.js';
+export { EntityType, RecordEnvelopeSchema, newRecord } from './record.js';
 export type { HLCState } from './hlc.js';
 export { hlcInitialState, hlcFormat, hlcParse, hlcCompare, hlcTick, hlcReceive } from './hlc.js';
 export type { Materialization } from './materialize.js';
@@ -93,6 +93,7 @@ export type {
   OutboxEntryLike,
 } from './dashboard.js';
 export {
+  currentPayloads,
   selectMission,
   selectDirection,
   selectElapsedTime,
@@ -134,3 +135,7 @@ export {
   SHIFT_CHANGE_WINDOW_MS,
   deriveNotifications,
 } from './notifications.js';
+export {
+  selectSitrepSections,
+  type SitrepSectionData,
+} from './sitrep.js';

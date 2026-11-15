@@ -9,6 +9,7 @@ import CreateIncident from './pages/CreateIncident.js';
 import IncidentDetail from './pages/IncidentDetail.js';
 import DashboardPage from './pages/Dashboard.js';
 import FunctionHomePage from './pages/FunctionHome.js';
+import SitrepPage from './pages/Sitrep.js';
 import Users from './pages/Users.js';
 import Settings from './pages/Settings.js';
 
@@ -212,6 +213,14 @@ export default function App() {
               element: (
                 <RequireAuth>
                   <FunctionHomePage />
+                </RequireAuth>
+              ),
+            },
+            {
+              path: 'incidents/:id/sitrep',
+              element: (
+                <RequireAuth>
+                  <SitrepPage />
                 </RequireAuth>
               ),
             },
