@@ -126,7 +126,6 @@
   "incidents.workspace.reports": "Rapporter",
   "incidents.header.myFunction": "Min funktion",
   "incidents.header.sync": "Synk",
-  "incidents.header.bell": "Klocka",
   "incidents.header.elapsed": "Löptid",
   "incidents.placeholder.comingSoon": "Kommer senare",
   "incidents.placeholder.noWriteAccess": "Du har inte behörighet att skriva här",
@@ -662,5 +661,15 @@
   "functionHome.attention.taskBlocked": "Blockerad uppgift",
   "functionHome.attention.decision": "Beslut behövs",
   "functionHome.attention.briefing": "Briefningsrapport saknas",
-  "functionHome.attention.shiftSoon": "Avläsning börjar snart"
+  "functionHome.attention.shiftSoon": "Avläsning börjar snart",
+  "notifications.title": "Aviseringar",
+  "notifications.none": "Inga aviseringar",
+  "notifications.markAllRead": "Markera alla som lästa",
+  "notifications.enableBrowser": "Aktivera webbläsaraviseringar",
+  "notifications.kind.task_assigned": "Ny uppgift tilldelad",
+  "notifications.kind.task_overdue": "Uppgift förbi deadline",
+  "notifications.kind.briefing_soon": "Briefning börjar snart",
+  "notifications.kind.shift_change": "Avläsningsskifte",
+  "notifications.kind.decision_needed": "Beslut behövs",
+  "notifications.kind.conflict": "Konflikt"
 }

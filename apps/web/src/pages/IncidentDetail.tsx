@@ -28,6 +28,7 @@ import Briefings from './Briefings.js';
 import Map from './Map.js';
 import Resources from './Resources.js';
 import Shifts from './Shifts.js';
+import { NotificationBell } from '../components/NotificationBell.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -273,12 +274,13 @@ export default function IncidentWorkspace() {
               <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
               <span>{t('incidents.header.sync')}</span>
             </div>
-            <button
-              className="text-slate-600 hover:text-slate-900"
-              aria-label={t('incidents.header.bell')}
-            >
-              🔔
-            </button>
+            {localStore && user && (
+              <NotificationBell
+                store={localStore}
+                incidentId={id!}
+                me={{ userId: user.id, functionIds: myMember?.functionIds ?? [] }}
+              />
+            )}
           </div>
         </div>
       </header>

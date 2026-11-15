@@ -126,7 +126,6 @@
   "incidents.workspace.reports": "Reports",
   "incidents.header.myFunction": "My function",
   "incidents.header.sync": "Sync",
-  "incidents.header.bell": "Bell",
   "incidents.header.elapsed": "Elapsed",
   "incidents.placeholder.comingSoon": "Coming soon",
   "incidents.placeholder.noWriteAccess": "You do not have write access here",
@@ -662,5 +661,15 @@
   "functionHome.attention.taskBlocked": "Blocked task",
   "functionHome.attention.decision": "Decision needed",
   "functionHome.attention.briefing": "Briefing report missing",
-  "functionHome.attention.shiftSoon": "Shift starting soon"
+  "functionHome.attention.shiftSoon": "Shift starting soon",
+  "notifications.title": "Notifications",
+  "notifications.none": "No notifications",
+  "notifications.markAllRead": "Mark all as read",
+  "notifications.enableBrowser": "Enable browser notifications",
+  "notifications.kind.task_assigned": "New task assigned",
+  "notifications.kind.task_overdue": "Task overdue",
+  "notifications.kind.briefing_soon": "Briefing starting soon",
+  "notifications.kind.shift_change": "Shift change",
+  "notifications.kind.decision_needed": "Decision needed",
+  "notifications.kind.conflict": "Conflict"
 }

@@ -124,3 +124,13 @@ export {
   selectMyShift,
   selectNeedsAttention,
 } from './functionHome.js';
+export type {
+  NotificationItem,
+  NotificationKind,
+  NotificationsOptions,
+} from './notifications.js';
+export {
+  BRIEFING_SOON_WINDOW_MS,
+  SHIFT_CHANGE_WINDOW_MS,
+  deriveNotifications,
+} from './notifications.js';

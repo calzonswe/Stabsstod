@@ -34,10 +34,12 @@ import {
   selectTimeScaleStrip,
   type FunctionStatus,
   type GeometryBounds,
+  type HomeIdentity,
   type MapFeaturePayload,
   type RecordEnvelope,
   type ScenarioPayload,
 } from '@stabsstod/shared';
+import { NotificationBell } from '../components/NotificationBell.js';
 import { LocalStore, type OutboxEntry } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -283,6 +285,7 @@ export interface DashboardProps {
   functions: Array<{ id: string; name: string }>;
   members: DashboardMember[];
   incident: DashboardIncident;
+  me: HomeIdentity;
 }
 
 const RAG_STYLES: Record<FunctionStatus['rag'], { dot: string; labelKey: 'dashboard.rag.red' | 'dashboard.rag.amber' | 'dashboard.rag.green' }> = {
@@ -291,7 +294,7 @@ const RAG_STYLES: Record<FunctionStatus['rag'], { dot: string; labelKey: 'dashbo
   green: { dot: 'bg-green-500', labelKey: 'dashboard.rag.green' },
 };
 
-export function Dashboard({ store, incidentId, functions, members, incident }: DashboardProps) {
+export function Dashboard({ store, incidentId, functions, members, incident, me }: DashboardProps) {
   const { t } = useTranslation();
   const [records, setRecords] = useState<RecordEnvelope[]>([]);
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
@@ -378,6 +381,7 @@ export function Dashboard({ store, incidentId, functions, members, incident }: D
           <span title={t('dashboard.elapsed')} className="font-mono text-lg font-bold text-slate-900 tabular-nums">
             {elapsed ?? '--:--:--'}
           </span>
+          <NotificationBell store={store} incidentId={incidentId} me={me} />
         </div>
       </header>
 
@@ -695,6 +699,8 @@ export default function DashboardPage() {
     functionIds: m.functionIds,
   }));
 
+  const meMember = user ? members.find((m) => m.id === user.id) : undefined;
+
   return (
     <Dashboard
       store={localStore}
@@ -702,6 +708,7 @@ export default function DashboardPage() {
       functions={functions}
       members={boardMembers}
       incident={{ id: incident.id, name: incident.name, startedAt: incident.startedAt, status: incident.status }}
+      me={{ userId: user?.id ?? '', functionIds: meMember?.functionIds ?? [] }}
     />
   );
 }

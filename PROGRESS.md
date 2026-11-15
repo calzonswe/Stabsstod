@@ -3,6 +3,86 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M34 — Notifications — done (2026-11-15)
+
+**Done:**
+- `packages/shared/src/notifications.ts` (new): `deriveNotifications({records,
+  me, now})` — pure, deterministic derivation of the §5.8 notification items
+  from the incident's local record bag + `HomeIdentity` + an injected clock
+  (epoch ms). Reuses the functionHome selectors (`selectMyTasks`,
+  `selectUpcomingBriefing`, `selectMyShift`, `selectNeedsAttention`) plus
+  `materialize` for conflicts. Every item has a **stable id**
+  (`<kind>:<refId>[:suffix]`) so read/unread can be tracked offline:
+  `task_assigned:<taskId>`, `task_overdue:<taskId>`,
+  `briefing_soon:<briefingId>:<atISO>`, `shift_change:<shiftId>:start|end`,
+  `decision_needed:<requestId>`, `conflict:<entityId>`. Sorted by fixed kind
+  order (overdue, conflict, assigned, decision, briefing, shift), then time,
+  then id — stable regardless of record input order. Windows: next briefing
+  occurrence ≤ 10 min (`BRIEFING_SOON_WINDOW_MS`), my shift start or end ≤
+  30 min (`SHIFT_CHANGE_WINDOW_MS`). Exported from the package index.
+- `apps/web/src/localStore.ts`: new Dexie v2 table `readNotifications`
+  (PK `key = <incidentId>:<notificationId>`, indexed by `incidentId`) holding
+  the read notification ids per user (the DB name is per user). Methods
+  `getReadNotificationIds`, `markNotificationRead` (idempotent put),
+  `markAllNotificationsRead` (bulkPut).
+- `apps/web/src/components/NotificationBell.tsx` (new): the bell. Polls the
+  local store every 5 s + a 1 s clock tick, runs `deriveNotifications`,
+  badge = unread count (derived items not in the read set); dropdown lists
+  items (click an item = mark it read), "mark all read", and an opt-in button
+  for the browser Notification API (`requestPermission`, shown only when
+  permission is `default`). Browser notifications fire only for items that
+  appear after the first non-empty derivation — the first derivation only
+  seeds the previous-id set, so opening a page never fires a burst. Reads the
+  local store only, so it works fully offline.
+- Wiring: `Dashboard`, `FunctionHome`, and `IncidentDetail` (replacing the
+  old inert 🔔 button) each render the bell in their header, passing
+  `me = {userId, functionIds}` from the signed-in member.
+- `apps/web/src/testMockDexie.ts`: `readNotifications` MockTable + `key`
+  considered first in `put`/`bulkPut` key derivation.
+- Locales: 11 new flat `notifications.*` keys per language (title, none,
+  markAllRead, enableBrowser, 6 `kind.*` labels); removed the now-unused
+  `incidents.header.bell`.
+- Tests: `packages/shared/src/notifications.test.ts` (15 — one per §5.8 rule
+  with fixture records + a fixed fake clock `2026-11-14T12:00:00Z`, plus an
+  empty-bag case and an ordering/stability case),
+  `apps/web/src/components/NotificationBell.test.tsx` (5 — badge count,
+  mark-read persists across re-polls, mark-all-read, no browser burst on load
+  + fires once for a new item with the right title/body/tag, opt-in
+  `requestPermission`), `apps/web/src/localStore.test.ts` (+3 — read-id
+  tracking per incident, idempotency, markAll).
+
+**Learned:**
+- Read/unread is **client-only** state keyed by the stable derived id, so it
+  needs no server and works offline. Because the id is a function of
+  (kind, refId, and for briefings the occurrence time), a re-derived item
+  keeps its id and stays marked read, while the same briefing's *next*
+  occurrence gets a fresh id (a new, unread notification).
+- "Task assigned to me" is implemented as a standing notice for every
+  non-terminal assigned task (not "newly created"), and the read/unread flag
+  is what makes it non-spammy — hence the first derivation only seeds the
+  previous-id set instead of firing a browser notification.
+- `shift_change` items carry an empty `subject` (the shift payload has no
+  title field); the bell falls back to showing the entity id for those.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(315 shared + 86 api + 138 web); e2e 2 passed (map + smoke); `docker compose
+up --build -d` + `scripts/smoke.sh` pass.
+
+**Left over (carried):** M30 feature persistence after reload e2e (should now
+be viable with the MapDraw crash fixed). M31 known defects, not yet fixed:
+(1) `apps/api/src/geo.ts` — combined search results sorted by name, not by
+similarity (`sim` selected in SQL but dropped in row mapping); (2)
+`GeoSearch.tsx` `markAsAffected` POSTs to `/api/sync/push` with a fabricated
+HLC/deviceId, bypassing the local store outbox and `can()` (offline-first
+violation); (3) `geo.test.ts` fixture fragility — expects `Stockholms län` but
+the idempotent insert writes `Stockholms lan` (passes only because an earlier
+run inserted the ä row; a fresh DB would fail). Earlier: API tests pollute
+runtime DB (recommend `TEST_DATABASE_URL`); M18 diff labels show authors, not
+Stockholm 24h times; M19 plain conflict badge only; M20 acknowledge disabled
+until a mission exists. M34: `shift_change` notifications have no subject
+text (entity id shown).
+Next: M35.
+
 ## M33 — Function workspace home — done (2026-11-14)
 
 **Done:**

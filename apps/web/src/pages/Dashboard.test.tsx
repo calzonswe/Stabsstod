@@ -74,6 +74,7 @@ function renderDashboard(store: LocalStore) {
           functions={FUNCTIONS}
           members={MEMBERS}
           incident={{ id: INCIDENT, name: 'Brand i industriområde', startedAt: STARTED_AT, status: 'active' }}
+          me={{ userId: 'user-2', functionIds: ['fn-1'] }}
         />
       </MemoryRouter>
     </I18nextProvider>,

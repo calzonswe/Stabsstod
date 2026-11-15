@@ -12,6 +12,8 @@
 //   entities  (derived cache, PK entityId)
 //   meta      (sync cursors per incident)
 //   blobs     (attachment bytes awaiting upload, PK hash)
+//   readNotifications (read notification ids per incident,
+//                      PK key = `${incidentId}:${notificationId}`)
 //
 // Dexie is imported lazily (inside methods) rather than at module top level,
 // because Dexie checks globalThis.indexedDB at module load time and jsdom/
@@ -41,12 +43,20 @@ export interface MaterializedEntity {
   retracted: boolean;
 }
 
+export interface ReadNotificationRow {
+  /** `${incidentId}:${notificationId}` — primary key. */
+  key: string;
+  incidentId: string;
+  notificationId: string;
+}
+
 interface StabsStodDB {
   records: Table<RecordEnvelope, string>;
   outbox: Table<OutboxEntry, string>;
   entities: Table<MaterializedEntity & { entityId: string }, string>;
   meta: Table<{ incidentId: string; serverSeq: number }, string>;
   blobs: Table<{ hash: string; data: ArrayBuffer; size: number }, string>;
+  readNotifications: Table<ReadNotificationRow, string>;
   close(): Promise<void>;
   delete(): Promise<void>;
 }
@@ -93,12 +103,17 @@ export class LocalStore {
         meta: 'incidentId',
         blobs: 'hash',
       });
+      // v2: read/unread notification state (client-only, M34).
+      dexie.version(2).stores({
+        readNotifications: 'key, incidentId',
+      });
       this.db = {
         records: dexie.records,
         outbox: dexie.outbox,
         entities: dexie.entities,
         meta: dexie.meta,
         blobs: dexie.blobs,
+        readNotifications: dexie.readNotifications,
         close: () => dexie.close(),
         delete: () => dexie.delete(),
       } as unknown as StabsStodDB;
@@ -233,6 +248,37 @@ export class LocalStore {
   async removeBlob(hash: string): Promise<void> {
     const db = await this.ensureDb();
     await db.blobs.delete(hash);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Read notifications (client-only read/unread state, M34)
+  // ---------------------------------------------------------------------------
+
+  /** Notification ids already marked read for the incident. */
+  async getReadNotificationIds(incidentId: string): Promise<string[]> {
+    const db = await this.ensureDb();
+    const rows = await db.readNotifications.where('incidentId').equals(incidentId).toArray();
+    return rows.map((r) => r.notificationId);
+  }
+
+  async markNotificationRead(incidentId: string, notificationId: string): Promise<void> {
+    const db = await this.ensureDb();
+    await db.readNotifications.put({
+      key: `${incidentId}:${notificationId}`,
+      incidentId,
+      notificationId,
+    });
+  }
+
+  async markAllNotificationsRead(incidentId: string, notificationIds: string[]): Promise<void> {
+    const db = await this.ensureDb();
+    await db.readNotifications.bulkPut(
+      notificationIds.map((notificationId) => ({
+        key: `${incidentId}:${notificationId}`,
+        incidentId,
+        notificationId,
+      })),
+    );
   }
 
   // ---------------------------------------------------------------------------

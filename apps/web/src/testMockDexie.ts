@@ -8,7 +8,11 @@ class MockTable {
   async put(keyOrRecord: any, value?: any) {
     if (value === undefined) {
       const key =
-        keyOrRecord.id ?? keyOrRecord.entityId ?? keyOrRecord.incidentId ?? keyOrRecord.hash;
+        keyOrRecord.key ??
+        keyOrRecord.id ??
+        keyOrRecord.entityId ??
+        keyOrRecord.incidentId ??
+        keyOrRecord.hash;
       this.data.set(key, keyOrRecord);
     } else {
       this.data.set(keyOrRecord, value);
@@ -17,7 +21,7 @@ class MockTable {
   }
   async bulkPut(items: any[]) {
     items.forEach((i) => {
-      const key = i.id ?? i.entityId ?? i.incidentId ?? i.hash;
+      const key = i.key ?? i.id ?? i.entityId ?? i.incidentId ?? i.hash;
       if (key !== undefined) this.data.set(key, i);
     });
     return undefined;
@@ -81,6 +85,7 @@ class MockDexie {
   entities = new MockTable();
   meta = new MockTable();
   blobs = new MockTable();
+  readNotifications = new MockTable();
   version(): any {
     return this;
   }

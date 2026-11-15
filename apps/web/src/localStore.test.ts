@@ -219,3 +219,38 @@ describe('LocalStore — user id isolation', () => {
     expect(recordsB.length).toBe(0);
   });
 });
+
+describe('LocalStore — read notifications', () => {
+  let store: LocalStore;
+
+  beforeEach(() => {
+    store = new LocalStore({ userId: 'user-read-notifications' });
+  });
+
+  afterEach(async () => {
+    await store.close();
+  });
+
+  it('starts with no read ids and tracks marked-read ids per incident', async () => {
+    expect(await store.getReadNotificationIds(INCIDENT)).toEqual([]);
+
+    await store.markNotificationRead(INCIDENT, 'task_assigned:task-a');
+
+    expect(await store.getReadNotificationIds(INCIDENT)).toEqual(['task_assigned:task-a']);
+    // Other incidents are unaffected.
+    expect(await store.getReadNotificationIds('incident-2')).toEqual([]);
+  });
+
+  it('markNotificationRead is idempotent', async () => {
+    await store.markNotificationRead(INCIDENT, 'conflict:task-c');
+    await store.markNotificationRead(INCIDENT, 'conflict:task-c');
+
+    expect(await store.getReadNotificationIds(INCIDENT)).toEqual(['conflict:task-c']);
+  });
+
+  it('markAllNotificationsRead stores all given ids', async () => {
+    await store.markAllNotificationsRead(INCIDENT, ['a:1', 'a:2', 'a:3']);
+
+    expect(await store.getReadNotificationIds(INCIDENT)).toEqual(['a:1', 'a:2', 'a:3']);
+  });
+});

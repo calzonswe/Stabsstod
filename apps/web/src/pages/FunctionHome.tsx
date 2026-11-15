@@ -32,6 +32,7 @@ import {
   type HomeIdentity,
   type RecordEnvelope,
 } from '@stabsstod/shared';
+import { NotificationBell } from '../components/NotificationBell.js';
 import { LocalStore } from '../localStore.js';
 
 async function api(path: string, init?: RequestInit) {
@@ -251,9 +252,12 @@ export function FunctionHome({ store, incidentId, functions, members, incident, 
           <h1 className="text-xl font-bold text-slate-900">{incident.name}</h1>
           <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusClass}`}>{incident.status}</span>
         </div>
-        <Link to={`/incidents/${incidentId}`} className="text-indigo-600 hover:text-indigo-700 text-sm">
-          {t('functionHome.back')}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to={`/incidents/${incidentId}`} className="text-indigo-600 hover:text-indigo-700 text-sm">
+            {t('functionHome.back')}
+          </Link>
+          <NotificationBell store={store} incidentId={incidentId} me={me} />
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
