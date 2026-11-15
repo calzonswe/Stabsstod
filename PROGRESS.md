@@ -3,6 +3,60 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M36 — Wind-down and evaluation — done (2026-11-15)
+
+**Done:**
+- `packages/shared/src/entityRegistry.ts`: new `closurePlanSchema`
+  (items[] {what, action: 'archive'|'discard'|'handover', owner, location?,
+  retention?}, status, announcedAt?) and `evaluationSchema`
+  (why, what, whoAffected, how, useOfResult, learnings[]). Registered for
+  `EntityType.closurePlan` and `EntityType.evaluation`; payload types
+  exported.
+- `packages/shared/src/permissions.ts`: `CanContext` is now
+  `{ incidentStatus?: string }`. In `can()`, a write on a closed incident
+  is rejected unless the entityType is `evaluation` — closed incidents are
+  read-only except for the AAR/evaluation form.
+- `apps/api/src/sync.ts`: the push endpoint fetches the incident status and
+  passes it to `canWrite`/`can()` as context, so the server enforces the
+  closed-incident rule. `canWrite` accepts an optional `incidentStatus`.
+- `apps/api/src/m36.test.ts` (new): 4 permission tests — operational writes
+  accepted while active, rejected after closure, evaluation accepted on a
+  closed incident, log_entry still rejected after evaluation.
+- `apps/web/src/pages/ClosurePlan.tsx` (new): wind-down plan page at
+  `/incidents/:id/closure-plan`. Items (what, action, owner, location,
+  retention), status (draft/active/completed), announcedAt. Writable by
+  chief/deputy only (gated with `can()`). Saves a `closure_plan` record.
+- `apps/web/src/pages/Evaluation.tsx` (new): AAR/evaluation page at
+  `/incidents/:id/evaluation`. The five questions (why, what, whoAffected,
+  how, useOfResult) + learnings. Writable even when the incident is closed.
+  Saves an `evaluation` record.
+- `apps/web/src/App.tsx`: routes `incidents/:id/closure-plan` and
+  `incidents/:id/evaluation` added.
+- `apps/web/src/locales/{sv,en}.json`: `closurePlan.*` and `evaluation.*`
+  keys per language.
+
+**Learned:**
+- Fastify `inject` converts Buffer response bodies to strings, corrupting
+  binary ZIP data on UTF-8 round-trip (noted in M35). Test zip-building
+  logic directly with real Buffers instead.
+- `closurePlan` was already in `CHIEF_DEPUTY_WRITE` in permissions.ts from
+  an earlier schema plan; only the runtime closed-incident check needed
+  adding.
+- The `can()` context parameter was `unknown`/unused; giving it a real
+  shape (`incidentStatus`) lets the server enforce incident-level write
+  restrictions without changing the pure function's signature contract.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(319 shared + 95 api + 142 web); e2e 2 passed (map + smoke); `docker compose
+up --build -d` + `scripts/smoke.sh` pass.
+
+**Left over (carried):** M30 feature persistence after reload e2e; M31 known
+defects (geo search sort, `markAsAffected` outbox bypass, `Stockholms län/lan`
+fixture); API tests pollute runtime DB; M18 diff labels; M19 plain conflict
+badge; M20 acknowledge. M36: closure plan uses a single entityId
+(`closure-plan-<incidentId>`) with versioned saves; evaluation likewise
+(`evaluation-<incidentId>`).
+
 ## M35 — Reports and exports — done (2026-11-15)
 
 **Done:**

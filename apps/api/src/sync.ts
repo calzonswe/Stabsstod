@@ -192,6 +192,14 @@ export function registerSync(app: FastifyInstance, pool: Pool) {
       });
     }
 
+    // Incident status (M36): a closed incident is read-only except for
+    // evaluation records.
+    const statusResult = await pool.query(
+      'SELECT status FROM incidents WHERE id = $1',
+      [incidentId],
+    );
+    const incidentStatus: string | undefined = statusResult.rows[0]?.status;
+
     const results: PushResult[] = [];
     let maxSeq: number | null = null;
 
@@ -214,9 +222,10 @@ export function registerSync(app: FastifyInstance, pool: Pool) {
         continue;
       }
 
-      // Permission check via can().
+      // Permission check via can(). A closed incident is read-only except
+      // for evaluation records (M36).
       const rl = recordLikeFromEnvelope(record);
-      if (!(await canWrite(actor, rl))) {
+      if (!(await canWrite(actor, rl, incidentStatus))) {
         results.push({
           status: 'rejected',
           reason: `forbidden: cannot write ${record.entityType}`,
@@ -386,9 +395,13 @@ export function registerSync(app: FastifyInstance, pool: Pool) {
 // Permission helper
 // ---------------------------------------------------------------------------
 
-async function canWrite(actor: Actor, rl: RecordLike): Promise<boolean> {
+async function canWrite(
+  actor: Actor,
+  rl: RecordLike,
+  incidentStatus?: string,
+): Promise<boolean> {
   if (actor.incidentId !== rl.incidentId) return false;
-  return can(actor, 'write' as Action, rl, {});
+  return can(actor, 'write' as Action, rl, { incidentStatus });
 }
 
 export type { PushResult };

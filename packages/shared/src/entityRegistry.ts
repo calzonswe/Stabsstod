@@ -541,6 +541,34 @@ const sitrepSchema = z.object({
   snapshot: z.record(z.string(), z.unknown()),
 });
 
+// closure_plan — M36: wind-down plan. Items say what to archive/discard/
+// hand over, who owns each item, and (optionally) where it goes and how
+// long it is retained. `status` tracks draft/active/completed;
+// `announcedAt` records when the closure was announced.
+const closurePlanSchema = z.object({
+  items: z.array(
+    z.object({
+      what: z.string().min(1),
+      action: z.enum(['archive', 'discard', 'handover']),
+      owner: z.string().min(1),
+      location: z.string().optional(),
+      retention: z.string().optional(),
+    }),
+  ),
+  status: z.string().min(1),
+  announcedAt: z.string().datetime().optional(),
+});
+
+// evaluation — M36: after-action review (AAR) with the five questions.
+const evaluationSchema = z.object({
+  why: z.string().min(1),
+  what: z.string().min(1),
+  whoAffected: z.string().min(1),
+  how: z.string().min(1),
+  useOfResult: z.string().min(1),
+  learnings: z.array(z.string().min(1)),
+});
+
 const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.logEntry, logEntrySchema],
   [EntityType.factItem, factItemSchema],
@@ -561,6 +589,8 @@ const entitySchemas = new Map<EntityType, z.ZodTypeAny>([
   [EntityType.attachment, attachmentSchema],
   [EntityType.mapFeature, mapFeatureSchema],
   [EntityType.sitrep, sitrepSchema],
+  [EntityType.closurePlan, closurePlanSchema],
+  [EntityType.evaluation, evaluationSchema],
 ]);
 
 export function getEntitySchema(entityType: EntityType): z.ZodTypeAny | undefined {
@@ -603,3 +633,5 @@ export type ResourcePayload = z.infer<typeof resourceSchema>;
 export type AttachmentPayload = z.infer<typeof attachmentSchema>;
 export type MapFeaturePayload = z.infer<typeof mapFeatureSchema>;
 export type SitrepPayload = z.infer<typeof sitrepSchema>;
+export type ClosurePlanPayload = z.infer<typeof closurePlanSchema>;
+export type EvaluationPayload = z.infer<typeof evaluationSchema>;

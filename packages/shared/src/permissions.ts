@@ -44,8 +44,12 @@ export interface RecordLike {
   mandate?: 'decision_maker' | 'delegated_chief'; // decision mandate
 }
 
-// Reserved for future context; kept for signature stability per plan.md §7.
-export type CanContext = unknown;
+// Context passed to `can()`; carried so the caller can supply incident-level
+// state such as whether the incident is closed (plan.md §7 / M36).
+export interface CanContext {
+  /** Incident status: 'active' | 'winding_down' | 'closed'. */
+  incidentStatus?: string;
+}
 
 // Incident-wide (null) functionId may only be written by chief/deputy.
 const CHIEF_OR_DEPUTY: Set<IncidentRole> = new Set(['chief_of_staff', 'deputy_chief']);
@@ -119,8 +123,7 @@ export function can(
   actor: Actor,
   action: Action,
   recordOrDraft: RecordLike | null,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _context: CanContext,
+  context: CanContext,
 ): boolean {
   const r = recordOrDraft;
   if (!r) {
@@ -142,5 +145,12 @@ export function can(
   }
 
   // action === 'write'
+  // A closed incident is read-only except for evaluation records (AAR).
+  if (
+    context.incidentStatus === 'closed' &&
+    r.entityType !== EntityType.evaluation
+  ) {
+    return false;
+  }
   return canWrite(actor, r);
 }

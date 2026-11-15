@@ -10,6 +10,8 @@ import IncidentDetail from './pages/IncidentDetail.js';
 import DashboardPage from './pages/Dashboard.js';
 import FunctionHomePage from './pages/FunctionHome.js';
 import SitrepPage from './pages/Sitrep.js';
+import ClosurePlanPage from './pages/ClosurePlan.js';
+import EvaluationPage from './pages/Evaluation.js';
 import Users from './pages/Users.js';
 import Settings from './pages/Settings.js';
 
@@ -221,6 +223,22 @@ export default function App() {
               element: (
                 <RequireAuth>
                   <SitrepPage />
+                </RequireAuth>
+              ),
+            },
+            {
+              path: 'incidents/:id/closure-plan',
+              element: (
+                <RequireAuth>
+                  <ClosurePlanPage />
+                </RequireAuth>
+              ),
+            },
+            {
+              path: 'incidents/:id/evaluation',
+              element: (
+                <RequireAuth>
+                  <EvaluationPage />
                 </RequireAuth>
               ),
             },
