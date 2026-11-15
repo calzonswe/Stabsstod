@@ -176,7 +176,7 @@ describe('admin users and settings', () => {
         headers: { cookie: `session=${adminToken}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           username: uniqueUser,
-          password: 'newpass123',
+          password: 'newpassword123',
           displayName: 'New User',
           role: 'user',
         }),
@@ -195,7 +195,7 @@ describe('admin users and settings', () => {
         headers: { cookie: `session=${userToken}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           username: 'newuser2',
-          password: 'newpass123',
+          password: 'newpassword123',
         }),
       });
       expect(res.statusCode).toBe(403);
@@ -208,10 +208,25 @@ describe('admin users and settings', () => {
         headers: { cookie: `session=${adminToken}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           username: uniqueUser,
-          password: 'x',
+          password: 'newpassword123',
         }),
       });
       expect(res.statusCode).toBe(409);
+    });
+
+    it('rejects a password that violates the policy', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/admin/users',
+        headers: { cookie: `session=${adminToken}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          username: `weak_${Date.now()}`,
+          password: 'short1',
+        }),
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toBe('password_policy');
+      expect(res.json().details).toContain('too_short');
     });
   });
 

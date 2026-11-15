@@ -92,6 +92,28 @@ describe('authentication', () => {
        ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, must_change_password = EXCLUDED.must_change_password`,
       ['user-ratelimit-1', 'ratelimit-user', 'user', false, passwordHash],
     );
+    // M38: dedicated users for session management and password policy tests.
+    // Their passwords satisfy the policy (12+ chars, letter + digit, not the
+    // username) so individual violations can be asserted in isolation.
+    const m38PasswordHash = await hash('currentpass99');
+    await pool.query(
+      `INSERT INTO users (id, username, role, must_change_password, password_hash)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, must_change_password = EXCLUDED.must_change_password`,
+      ['user-sessions-m38', 'sessions-user', 'user', false, m38PasswordHash],
+    );
+    await pool.query(
+      `INSERT INTO users (id, username, role, must_change_password, password_hash)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, must_change_password = EXCLUDED.must_change_password`,
+      ['user-policy-m38', 'policy-user', 'user', false, m38PasswordHash],
+    );
+    await pool.query(
+      `INSERT INTO users (id, username, role, must_change_password, password_hash)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, must_change_password = EXCLUDED.must_change_password`,
+      ['user-policy2-m38', 'policy2-user', 'user', false, m38PasswordHash],
+    );
     await pool.end();
 
     app = await appWithDb();
@@ -206,7 +228,7 @@ describe('authentication', () => {
         method: 'POST',
         url: '/api/auth/change-password',
         headers: { cookie: `session=${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ currentPassword: 'wrong', newPassword: 'newpass456' }),
+        body: JSON.stringify({ currentPassword: 'wrong', newPassword: 'newpassword456' }),
       });
       expect(res.statusCode).toBe(401);
     });
@@ -225,7 +247,7 @@ describe('authentication', () => {
         headers: { cookie: `session=${token}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           currentPassword: 'password123',
-          newPassword: 'newpass456',
+          newPassword: 'newpassword456',
         }),
       });
       expect(change.statusCode).toBe(200);
@@ -235,7 +257,7 @@ describe('authentication', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/auth/login',
-        ...jsonBody('testuser', 'newpass456'),
+        ...jsonBody('testuser', 'newpassword456'),
       });
       expect(res.statusCode).toBe(200);
     });
@@ -256,7 +278,7 @@ describe('authentication', () => {
       const login = await app.inject({
         method: 'POST',
         url: '/api/auth/login',
-        ...jsonBody('testuser', 'newpass456'),
+        ...jsonBody('testuser', 'newpassword456'),
       });
       const token = sessionCookieOf(login)!;
 
@@ -274,6 +296,185 @@ describe('authentication', () => {
         headers: { cookie: `session=${token}` },
       });
       expect(me.statusCode).toBe(401);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // M38: session management + password policy
+  // ---------------------------------------------------------------------------
+
+  describe('POST /api/auth/change-password policy (M38)', () => {
+    async function loginAsPolicyUser() {
+      const login = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        ...jsonBody('policy-user', 'currentpass99'),
+      });
+      expect(login.statusCode).toBe(200);
+      return sessionCookieOf(login)!;
+    }
+
+    async function tryChange(token: string, newPassword: string) {
+      return app.inject({
+        method: 'POST',
+        url: '/api/auth/change-password',
+        headers: { cookie: `session=${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ currentPassword: 'currentpass99', newPassword }),
+      });
+    }
+
+    it('rejects a too-short new password', async () => {
+      const res = await tryChange(await loginAsPolicyUser(), 'short1');
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toBe('password_policy');
+      expect(res.json().details).toContain('too_short');
+    });
+
+    it('rejects a new password without a digit', async () => {
+      const res = await tryChange(await loginAsPolicyUser(), 'abcdefghijkl');
+      expect(res.statusCode).toBe(400);
+      expect(res.json().details).toContain('missing_digit');
+    });
+
+    it('rejects a new password without a letter', async () => {
+      const res = await tryChange(await loginAsPolicyUser(), '123456789012');
+      expect(res.statusCode).toBe(400);
+      expect(res.json().details).toContain('missing_letter');
+    });
+
+    it('rejects a new password identical to the username', async () => {
+      const res = await tryChange(await loginAsPolicyUser(), 'policy-user');
+      expect(res.statusCode).toBe(400);
+      expect(res.json().details).toContain('same_as_username');
+    });
+
+    it('rejects a new password identical to the current password', async () => {
+      const res = await tryChange(await loginAsPolicyUser(), 'currentpass99');
+      expect(res.statusCode).toBe(400);
+      expect(res.json().details).toContain('same_as_current');
+    });
+
+    it('accepts a policy-clean new password', async () => {
+      const login = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        ...jsonBody('policy2-user', 'currentpass99'),
+      });
+      expect(login.statusCode).toBe(200);
+      const token = sessionCookieOf(login)!;
+
+      const change = await app.inject({
+        method: 'POST',
+        url: '/api/auth/change-password',
+        headers: { cookie: `session=${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: 'currentpass99',
+          newPassword: 'newpassword789',
+        }),
+      });
+      expect(change.statusCode).toBe(200);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        ...jsonBody('policy2-user', 'newpassword789'),
+      });
+      expect(res.statusCode).toBe(200);
+    });
+  });
+
+  describe('session management (M38)', () => {
+    const USER_AGENT = 'M38-TestAgent/1.0';
+
+    it('GET /api/auth/sessions returns 401 without a session cookie', async () => {
+      const res = await app.inject({ method: 'GET', url: '/api/auth/sessions' });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('lists the user\'s sessions and marks the current one', async () => {
+      const login1 = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        ...jsonBody('sessions-user', 'currentpass99'),
+        headers: { 'content-type': 'application/json', 'user-agent': USER_AGENT },
+      });
+      const token1 = sessionCookieOf(login1)!;
+      const login2 = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        ...jsonBody('sessions-user', 'currentpass99'),
+        headers: { 'content-type': 'application/json', 'user-agent': USER_AGENT },
+      });
+      const token2 = sessionCookieOf(login2)!;
+      expect(token2).toBeDefined();
+      expect(token2).not.toBe(token1);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/auth/sessions',
+        headers: { cookie: `session=${token1}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const { sessions } = res.json();
+      expect(sessions.length).toBeGreaterThanOrEqual(2);
+      const current = sessions.filter((s: { current: boolean }) => s.current);
+      expect(current).toHaveLength(1);
+      for (const s of sessions) {
+        expect(s.createdAt).toBeDefined();
+        expect(s.expiresAt).toBeDefined();
+        expect(s.lastSeenAt).toBeDefined();
+        expect(s.userAgent).toBe(USER_AGENT);
+      }
+    });
+
+    it('DELETE /api/auth/sessions logs out every device', async () => {
+      const login1 = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        ...jsonBody('sessions-user', 'currentpass99'),
+      });
+      const token1 = sessionCookieOf(login1)!;
+      const login2 = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        ...jsonBody('sessions-user', 'currentpass99'),
+      });
+      const token2 = sessionCookieOf(login2)!;
+
+      const out = await app.inject({
+        method: 'DELETE',
+        url: '/api/auth/sessions',
+        headers: { cookie: `session=${token1}` },
+      });
+      expect(out.statusCode).toBe(200);
+      expect(out.json()).toMatchObject({ ok: true });
+
+      // Every session of the user is gone, including the one that acted.
+      for (const token of [token1, token2]) {
+        const me = await app.inject({
+          method: 'GET',
+          url: '/api/auth/me',
+          headers: { cookie: `session=${token}` },
+        });
+        expect(me.statusCode).toBe(401);
+      }
+
+      const pool = new Pool({ connectionString: DATABASE_URL });
+      try {
+        const { rows } = await pool.query(
+          `SELECT count(*)::int AS n
+           FROM sessions
+           WHERE user_id = (SELECT id FROM users WHERE username = 'sessions-user')`,
+        );
+        expect(rows[0].n).toBe(0);
+      } finally {
+        await pool.end();
+      }
+    });
+
+    it('DELETE /api/auth/sessions returns 401 without a session cookie', async () => {
+      const res = await app.inject({ method: 'DELETE', url: '/api/auth/sessions' });
+      expect(res.statusCode).toBe(401);
     });
   });
 });

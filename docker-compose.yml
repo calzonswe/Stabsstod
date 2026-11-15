@@ -15,6 +15,9 @@ services:
       - '127.0.0.1:5432:5432'
 
   api:
+    # Explicit tag so the image can be moved to an air-gapped machine with
+    # `docker save stabsstod/api:latest` / `docker load` (README, M38).
+    image: stabsstod/api:latest
     build:
       context: .
       dockerfile: apps/api/Dockerfile

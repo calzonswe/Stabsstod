@@ -15,6 +15,7 @@ import EvaluationPage from './pages/Evaluation.js';
 import WallPage from './pages/Wall.js';
 import Users from './pages/Users.js';
 import Settings from './pages/Settings.js';
+import Account from './pages/Account.js';
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -86,6 +87,16 @@ function Layout() {
                   </Link>
                 </>
               )}
+              <Link
+                to="/account"
+                className={`text-sm ${
+                  window.location.pathname === '/account'
+                    ? 'text-indigo-600 font-medium'
+                    : 'text-slate-600 hover:text-indigo-600'
+                }`}
+              >
+                {t('nav.account')}
+              </Link>
             </nav>
             {user ? (
               <>
@@ -185,6 +196,14 @@ export default function App() {
                 <RequireAdmin>
                   <Settings />
                 </RequireAdmin>
+              ),
+            },
+            {
+              path: 'account',
+              element: (
+                <RequireAuth>
+                  <Account />
+                </RequireAuth>
               ),
             },
             {

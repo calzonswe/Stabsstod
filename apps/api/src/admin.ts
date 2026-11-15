@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { hash } from '@node-rs/argon2';
-import { sessionId } from './auth.js';
+import { generateTempPassword, passwordPolicyViolations, sessionId } from './auth.js';
 
 type AuthedUser = {
   id: string;
@@ -91,6 +91,11 @@ export function registerAdmin(app: FastifyInstance, pool: Pool) {
     }
     const { username, password, displayName, role } = parsed.data;
 
+    const violations = passwordPolicyViolations(password, username);
+    if (violations.length > 0) {
+      return reply.status(400).send({ error: 'password_policy', details: violations });
+    }
+
     const existing = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
     if ((existing.rowCount ?? 0) > 0) {
       return reply.status(409).send({ error: 'username already exists' });
@@ -132,7 +137,8 @@ export function registerAdmin(app: FastifyInstance, pool: Pool) {
       return reply.status(auth.status).send(auth.body);
     }
     const { id } = req.params as { id: string };
-    const tempPassword = randomUUID().slice(0, 12);
+    const { rows } = await pool.query('SELECT username FROM users WHERE id = $1', [id]);
+    const tempPassword = generateTempPassword((rows[0] as { username: string })?.username ?? '');
     const passwordHash = await hash(tempPassword);
     await pool.query(
       'UPDATE users SET password_hash = $1, must_change_password = true WHERE id = $2',

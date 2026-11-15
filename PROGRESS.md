@@ -3,6 +3,96 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M38 — Operations — done (2026-11-15)
+
+**Done:**
+- `scripts/backup.sh` (new): online backup into
+  `data/backups/<YYYYMMDD-HHMMSS>/` — `db.sql.gz` (pg_dump through the db
+  container), `attachments.tar.gz` (the attachments volume through the api
+  container) and `manifest.txt` (what/when/git commit). The stack keeps
+  serving; starts it first if it is down.
+- `scripts/restore.sh [backup-dir]` (new): newest backup by default; verifies
+  the backup files, swaps the attachments volume (while the api runs — the
+  named volume is only reachable through the container), stops the api, drops
+  and recreates the database from the dump, starts the api (idempotent
+  migrations bring an older backup up to date), waits for health and runs
+  `scripts/smoke.sh`. Destructive — documented as such.
+- `apps/api/src/app.ts`: top-level `onSend` hook setting the security headers
+  on every response (API, static, SPA fallback): HSTS `max-age=31536000`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, and a
+  strict CSP (`default-src 'self'`, `img-src` allows `blob:` for attachment
+  previews, `worker-src` for the service worker, `object-src 'none'`,
+  `base-uri 'self'`, `frame-ancestors 'self'`; no remote origins).
+- `apps/api/src/auth.ts`: password policy — min 12 chars, letter + digit, not
+  the username (exported `passwordPolicyViolations`), enforced on
+  change-password (plus `same_as_current`); session metadata: login captures
+  `user_agent`, login and `/me` refresh `last_seen_at`; new
+  `GET /api/auth/sessions` (lists own sessions, marks the current one) and
+  `DELETE /api/auth/sessions` (logs out **all** devices, `logout_all`
+  auth_event, clears the cookie).
+- `apps/api/src/admin.ts`: user creation rejects policy-violating passwords
+  (400 `password_policy` + details); password reset now issues a
+  policy-compliant temp password (`generateTempPassword`: 16 chars,
+  unambiguous alphabet, `crypto.randomInt`, retry loop) instead of
+  `randomUUID().slice(0, 12)`.
+- `drizzle/0007_m38_sessions_meta.sql`: `user_agent` + `last_seen_at` on
+  `sessions` (a non-operational table — plain ALTER, no versioned records).
+- Web: `apps/web/src/pages/Account.tsx` (new) — session list (device, last
+  active, expiry, "this device" badge; 24h Europe/Stockholm via Intl) and a
+  "log out all devices" button (confirm → DELETE → local logout →
+  RequireAuth redirects to login). Route `/account` behind `RequireAuth` and a
+  nav link for all signed-in users in `App.tsx`.
+- `apps/web/src/locales/{sv,en}.json`: `nav.account` + `account.*` keys
+  (parity test green).
+- `docker-compose.yml`: explicit `image: stabsstod/api:latest` on the api
+  service — `docker load` now satisfies compose without a build (air-gapped).
+- README: new sections "Backup and restore", "Air-gapped install", "Password
+  policy", "Security headers".
+- Tests: `auth.test.ts` (policy rejections: too short / no digit / no letter /
+  same-as-username / same-as-current; policy-clean change accepted; session
+  list with current marker + user-agent capture; DELETE-all kills every
+  device and empties the table; 401s unauthenticated) and
+  `security.test.ts` (new: the four headers on API, SPA index and static
+  asset responses, and no remote origin anywhere in the CSP);
+  `admin.test.ts` (weak password → 400 `password_policy`; existing fixtures
+  moved to policy-clean passwords).
+
+**Learned:**
+- Compose only reuses a loaded image for a service that names it explicitly
+  (`image: stabsstod/api:latest`); the auto-named `stabsstod-api` build
+  result is not referenceable by `docker save`/`load`. That is what the
+  air-gapped install doc relies on (`up -d` without `--build`).
+- `docker rmi` refuses images still referenced by stopped containers — the
+  air-gapped target simulation needs `docker compose down` (containers gone,
+  volumes kept) before `rmi` + `load` + `up -d`.
+- The change-password policy check runs before the current-password verify;
+  both paths sit behind a valid session, and `same_as_current` is reported
+  even when other violations apply (pushed unconditionally).
+- The bootstrap admin from `ADMIN_PASSWORD` env is deliberately not
+  policy-checked at start (the env value is the organisation's choice);
+  `mustChangePassword` forces a policy-checked change at first login.
+  Documented in the README.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(319 shared + 109 api + 150 web). `docker compose build` +
+`scripts/smoke.sh` green. **The documented restore was actually run**
+(accept criterion): fixture user + fixture attachment created →
+`scripts/backup.sh` → simulated loss (fixture file deleted from the volume,
+database dropped) → `scripts/restore.sh data/backups/20261115-123626` →
+fixture user logs in (200), attachment byte-identical, smoke test green inside
+the script. The air-gapped cycle was also run for real: `docker save
+stabsstod/api:latest postgres:16` (366 MB) → `docker compose down` +
+`docker rmi` → `docker load` → `docker compose up -d` (no build) → smoke
+green, data intact. Security headers verified live on the rebuilt stack.
+
+**Left over (carried):** M30 feature persistence after reload e2e; M31 known
+defects (geo search sort, `markAsAffected` outbox bypass, `Stockholms län/lan`
+fixture); API tests pollute runtime DB; M18 diff labels; M19 plain conflict
+badge; M20 acknowledge. M38: the drill left a `m38-restore-check` user and
+one attachment file in the runtime stack (harmless, loopback-only); backups
+under `data/backups/` are local artifacts (git-ignored) and are not part of
+the repo.
+
 ## M37 — Wall display mode — done (2026-11-15)
 
 **Done:**

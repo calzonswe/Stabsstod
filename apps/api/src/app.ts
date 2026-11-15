@@ -31,6 +31,32 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
 
   const app = Fastify({ logger: false });
 
+  // ---------------------------------------------------------------------------
+  // Security headers (plan.md §7 / M38). Set on every response from this
+  // server, including static assets, so the headers are correct no matter how
+  // the organisation's own reverse proxy forwards the request. The proxy
+  // terminates TLS; HSTS is harmless over plain HTTP and takes effect once
+  // the site is served over HTTPS.
+  // ---------------------------------------------------------------------------
+  const CONTENT_SECURITY_POLICY = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' blob: data:", // blob: for attachment previews (URL.createObjectURL)
+    "font-src 'self'",
+    "connect-src 'self'",
+    "worker-src 'self'", // service worker
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'self'",
+  ].join('; ');
+  app.addHook('onSend', async (_req, reply) => {
+    reply.header('Strict-Transport-Security', 'max-age=31536000');
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('Referrer-Policy', 'no-referrer');
+    reply.header('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+  });
+
   await app.register(fastifyCookie);
 
   // Serve the built web app. The static plugin maps URLs straight onto the
