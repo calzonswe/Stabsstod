@@ -123,7 +123,8 @@ describe('admin users and settings', () => {
       `INSERT INTO settings (key, value) VALUES
        ('timezone', '"Europe/Stockholm"'),
        ('map.onlineTileUrl', 'null'),
-       ('maxUploadMB', '25')
+       ('maxUploadMB', '25'),
+       ('wall.rotateEverySeconds', '30')
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
     );
 
@@ -331,6 +332,7 @@ describe('admin users and settings', () => {
       expect(body.timezone).toBe('Europe/Stockholm');
       expect(body.map.onlineTileUrl).toBeNull();
       expect(body.maxUploadMB).toBe(25);
+      expect(body.wallRotateEverySeconds).toBe(30);
     });
   });
 
@@ -344,6 +346,7 @@ describe('admin users and settings', () => {
           timezone: 'America/New_York',
           map: { onlineTileUrl: 'https://example.com/tiles/{z}/{x}/{y}.pbf' },
           maxUploadMB: 50,
+          wallRotateEverySeconds: 45,
         }),
       });
       expect(res.statusCode).toBe(200);
@@ -358,6 +361,7 @@ describe('admin users and settings', () => {
       expect(body.timezone).toBe('America/New_York');
       expect(body.map.onlineTileUrl).toBe('https://example.com/tiles/{z}/{x}/{y}.pbf');
       expect(body.maxUploadMB).toBe(50);
+      expect(body.wallRotateEverySeconds).toBe(45);
     });
 
     it('returns 403 for non-admin', async () => {

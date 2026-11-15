@@ -28,6 +28,9 @@ import { Protocol } from 'pmtiles';
 import { layers, namedTheme } from 'protomaps-themes-base';
 import MapDraw from '../components/MapDraw.js';
 import GeoSearch from '../components/GeoSearch.js';
+import { SEVERITY_PAINT } from '../map/MapLibreAdapter.js';
+import type { GeoJSONFeatureCollection } from '../map/MapLibreAdapter.js';
+import type { MapFeaturePayload } from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 
 const PMTILES_PATH = '/tiles/sweden.pmtiles';
@@ -95,13 +98,23 @@ interface MapProps {
   incidentId?: string;
   authorId?: string;
   functionId?: string | null;
+  /**
+   * Wall display mode (plan.md §10 / M37): render the incident's features
+   * read-only. No drawing tools, no search box, no layer toggle.
+   */
+  readonlyFeatures?: MapFeaturePayload[];
 }
+
+// Read-only feature source id (wall display). Same single-source +
+// geometry-type filter convention as MapLibreAdapter.
+const WALL_SOURCE_ID = 'stabsstod-wall-features';
 
 export default function Map({
   store,
   incidentId,
   authorId,
   functionId,
+  readonlyFeatures,
 }: MapProps = {}) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -181,6 +194,89 @@ export default function Map({
     };
   }, [attempt]);
 
+  // Wall display (M37): render the incident's features read-only.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || readonlyFeatures === undefined) return;
+    const m = map as unknown as {
+      getSource: (id: string) => { setData: (data: unknown) => void } | undefined;
+      addSource: (id: string, source: unknown) => void;
+      addLayer: (layer: unknown) => void;
+    };
+    const data: GeoJSONFeatureCollection = {
+      type: 'FeatureCollection',
+      features: readonlyFeatures.map((p, i) => ({
+        type: 'Feature',
+        id: `${i}`,
+        geometry: p.geometry,
+        properties: { severity: p.severity, label: p.label },
+      })),
+    };
+    const source = m.getSource(WALL_SOURCE_ID);
+    if (source) {
+      source.setData(data);
+      return;
+    }
+    m.addSource(WALL_SOURCE_ID, { type: 'geojson', data });
+    const color: unknown = [
+      'match',
+      ['get', 'severity'],
+      'info',
+      SEVERITY_PAINT.info,
+      'warning',
+      SEVERITY_PAINT.warning,
+      'severe',
+      SEVERITY_PAINT.severe,
+      '#94a3b8',
+    ];
+    const layers: Array<{
+      id: string;
+      type: string;
+      filter: unknown;
+      paint: Record<string, unknown>;
+    }> = [
+      {
+        id: `${WALL_SOURCE_ID}-point`,
+        type: 'circle',
+        filter: ['==', ['geometry-type'], 'Point'],
+        paint: {
+          'circle-radius': 8,
+          'circle-color': color,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.9,
+        },
+      },
+      {
+        id: `${WALL_SOURCE_ID}-linestring`,
+        type: 'line',
+        filter: ['==', ['geometry-type'], 'LineString'],
+        paint: { 'line-color': color, 'line-width': 4, 'line-opacity': 0.9 },
+      },
+      {
+        id: `${WALL_SOURCE_ID}-polygon-fill`,
+        type: 'fill',
+        filter: ['==', ['geometry-type'], 'Polygon'],
+        paint: { 'fill-color': color, 'fill-opacity': 0.35 },
+      },
+      {
+        id: `${WALL_SOURCE_ID}-polygon-outline`,
+        type: 'line',
+        filter: ['==', ['geometry-type'], 'Polygon'],
+        paint: { 'line-color': color, 'line-width': 2, 'line-opacity': 0.9 },
+      },
+    ];
+    for (const layer of layers) {
+      m.addLayer({
+        id: layer.id,
+        type: layer.type,
+        source: WALL_SOURCE_ID,
+        filter: layer.filter,
+        paint: layer.paint,
+      });
+    }
+  }, [readonlyFeatures, mapLoaded]);
+
   function toggleOnlineLayer(): void {
     const map = mapRef.current;
     if (!map) return;
@@ -231,7 +327,7 @@ export default function Map({
           functionId={functionId ?? null}
         />
       )}
-      {status === 'ready' && mapLoaded && (
+      {status === 'ready' && mapLoaded && readonlyFeatures === undefined && (
         <GeoSearch
           map={mapRef.current}
           store={store ?? null}
@@ -240,7 +336,7 @@ export default function Map({
           functionId={functionId ?? null}
         />
       )}
-      {status === 'ready' && mapLoaded && onlineTileUrl && (
+      {status === 'ready' && mapLoaded && readonlyFeatures === undefined && onlineTileUrl && (
         <button
           type="button"
           onClick={toggleOnlineLayer}

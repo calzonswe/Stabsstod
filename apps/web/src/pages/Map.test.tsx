@@ -21,6 +21,7 @@ vi.mock('maplibre-gl', () => {
     opts: Record<string, unknown>;
     listeners: Record<string, Array<() => void>> = {};
     addedSources: string[] = [];
+    sources: Record<string, { data: unknown; setData: (d: unknown) => void }> = {};
     addedLayers: string[] = [];
     layoutCalls: Array<[string, string, string]> = [];
 
@@ -41,8 +42,19 @@ vi.mock('maplibre-gl', () => {
       for (const handler of this.listeners[event] ?? []) handler();
     }
 
-    addSource(id: string): void {
+    addSource(id: string, spec?: { data?: unknown }): void {
       this.addedSources.push(id);
+      const source: { data: unknown; setData: (d: unknown) => void } = {
+        data: spec?.data,
+        setData: (d: unknown) => {
+          source.data = d;
+        },
+      };
+      this.sources[id] = source;
+    }
+
+    getSource(id: string): { data: unknown; setData: (d: unknown) => void } | undefined {
+      return this.sources[id];
     }
 
     addLayer(layer: { id?: string }): void {
@@ -69,6 +81,7 @@ interface FakeMapRecord {
   container: unknown;
   opts: Record<string, unknown>;
   addedSources: string[];
+  sources: Record<string, { data: unknown; setData: (d: unknown) => void }>;
   addedLayers: string[];
   layoutCalls: Array<[string, string, string]>;
 }
@@ -206,5 +219,44 @@ describe('Map (M29)', () => {
     expect(map.layoutCalls).toContainEqual(['online-tiles-layer', 'visibility', 'none']);
     // Button stays (toggle) and container still present.
     expect(container.querySelector('[data-testid="map-container"]')).toBeTruthy();
+  });
+
+  it('renders readonly wall features without interactive controls (M37)', async () => {
+    stubFetch('present');
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <Map
+          readonlyFeatures={[
+            {
+              label: 'Brandplats',
+              layer: 'situation',
+              geometry: { type: 'Point', coordinates: [16.0, 63.0] },
+              severity: 'severe',
+              validity: 'now',
+            },
+          ]}
+        />
+      </I18nextProvider>,
+    );
+    await waitFor(() => expect(captured.maps).toHaveLength(1));
+    const map = captured.maps[0] as FakeMapRecord;
+
+    // The read-only wall features source is added with the incident's features.
+    await waitFor(() => {
+      expect(map.sources['stabsstod-wall-features']).toBeDefined();
+    });
+    const data = map.sources['stabsstod-wall-features'].data as {
+      type: string;
+      features: Array<{ properties: { label: string; severity: string } }>;
+    };
+    expect(data.type).toBe('FeatureCollection');
+    expect(data.features[0].properties.label).toBe('Brandplats');
+    expect(data.features[0].properties.severity).toBe('severe');
+    expect(map.addedLayers).toContain('stabsstod-wall-features-point');
+    expect(map.addedLayers).toContain('stabsstod-wall-features-polygon-fill');
+
+    // Wall mode: no drawing tools, no search box, no online layer toggle.
+    expect(container.querySelector('button')).toBeNull();
+    expect(container.querySelector('input')).toBeNull();
   });
 });

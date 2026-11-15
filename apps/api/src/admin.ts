@@ -61,6 +61,7 @@ const settingsSchema = z.object({
   timezone: z.string().optional(),
   map: z.object({ onlineTileUrl: z.string().nullable().optional() }).optional(),
   maxUploadMB: z.number().int().positive().optional(),
+  wallRotateEverySeconds: z.number().int().positive().optional(),
 });
 
 export function registerAdmin(app: FastifyInstance, pool: Pool) {
@@ -178,16 +179,16 @@ export function registerAdmin(app: FastifyInstance, pool: Pool) {
   // ---------------------------------------------------------------------------
 
   app.get('/api/settings', async (_req, reply) => {
-    const { rows } = await pool.query('SELECT key, value FROM settings WHERE key IN ($1, $2, $3)', [
-      'timezone',
-      'map.onlineTileUrl',
-      'maxUploadMB',
-    ]);
+    const { rows } = await pool.query(
+      'SELECT key, value FROM settings WHERE key IN ($1, $2, $3, $4)',
+      ['timezone', 'map.onlineTileUrl', 'maxUploadMB', 'wall.rotateEverySeconds'],
+    );
     const byKey = Object.fromEntries(rows.map((r) => [r.key, r.value]));
     return reply.send({
       timezone: byKey.timezone ?? 'Europe/Stockholm',
       map: { onlineTileUrl: byKey['map.onlineTileUrl'] ?? null },
       maxUploadMB: byKey.maxUploadMB ?? 25,
+      wallRotateEverySeconds: byKey['wall.rotateEverySeconds'] ?? 30,
     });
   });
 
@@ -200,7 +201,7 @@ export function registerAdmin(app: FastifyInstance, pool: Pool) {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'invalid input', details: parsed.error });
     }
-    const { timezone, map, maxUploadMB } = parsed.data;
+    const { timezone, map, maxUploadMB, wallRotateEverySeconds } = parsed.data;
     const updates: { key: string; value: unknown }[] = [];
     if (timezone !== undefined) {
       updates.push({ key: 'timezone', value: timezone });
@@ -210,6 +211,9 @@ export function registerAdmin(app: FastifyInstance, pool: Pool) {
     }
     if (maxUploadMB !== undefined) {
       updates.push({ key: 'maxUploadMB', value: maxUploadMB });
+    }
+    if (wallRotateEverySeconds !== undefined) {
+      updates.push({ key: 'wall.rotateEverySeconds', value: wallRotateEverySeconds });
     }
     for (const u of updates) {
       await pool.query(

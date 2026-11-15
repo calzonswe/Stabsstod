@@ -14,6 +14,7 @@ type Settings = {
   timezone: string;
   map: { onlineTileUrl: string | null };
   maxUploadMB: number;
+  wallRotateEverySeconds: number;
 };
 
 export default function Settings() {
@@ -27,6 +28,7 @@ export default function Settings() {
   const [timezone, setTimezone] = useState('');
   const [onlineTileUrl, setOnlineTileUrl] = useState('');
   const [maxUploadMB, setMaxUploadMB] = useState('');
+  const [wallRotateEverySeconds, setWallRotateEverySeconds] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function Settings() {
       setTimezone(data.timezone);
       setOnlineTileUrl(data.map.onlineTileUrl ?? '');
       setMaxUploadMB(String(data.maxUploadMB));
+      setWallRotateEverySeconds(String(data.wallRotateEverySeconds));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed to load settings');
     } finally {
@@ -62,6 +65,9 @@ export default function Settings() {
             onlineTileUrl: onlineTileUrl || null,
           },
           maxUploadMB: maxUploadMB ? parseInt(maxUploadMB, 10) : undefined,
+          wallRotateEverySeconds: wallRotateEverySeconds
+            ? parseInt(wallRotateEverySeconds, 10)
+            : undefined,
         }),
       });
       await loadSettings();
@@ -137,12 +143,28 @@ export default function Settings() {
             <p className="text-xs text-slate-500 mt-1">{t('settings.maxUploadMBHint')}</p>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              {t('settings.wallRotateEverySeconds')}
+            </label>
+            <input
+              type="number"
+              value={wallRotateEverySeconds}
+              onChange={(e) => setWallRotateEverySeconds(e.target.value)}
+              min="5"
+              className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              {t('settings.wallRotateEverySecondsHint')}
+            </p>
+          </div>
+
           {settings && (
             <div className="pt-4 border-t border-slate-100">
               <p className="text-xs text-slate-500">
                 {t('settings.currentValues')}:
                 <br />
-                {`timezone: ${settings.timezone}, map.onlineTileUrl: ${settings.map.onlineTileUrl ?? '(none)'}, maxUploadMB: ${settings.maxUploadMB}`}
+                {`timezone: ${settings.timezone}, map.onlineTileUrl: ${settings.map.onlineTileUrl ?? '(none)'}, maxUploadMB: ${settings.maxUploadMB}, wallRotateEverySeconds: ${settings.wallRotateEverySeconds}`}
               </p>
             </div>
           )}

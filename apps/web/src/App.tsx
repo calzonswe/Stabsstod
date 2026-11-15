@@ -12,6 +12,7 @@ import FunctionHomePage from './pages/FunctionHome.js';
 import SitrepPage from './pages/Sitrep.js';
 import ClosurePlanPage from './pages/ClosurePlan.js';
 import EvaluationPage from './pages/Evaluation.js';
+import WallPage from './pages/Wall.js';
 import Users from './pages/Users.js';
 import Settings from './pages/Settings.js';
 
@@ -239,6 +240,14 @@ export default function App() {
               element: (
                 <RequireAuth>
                   <EvaluationPage />
+                </RequireAuth>
+              ),
+            },
+            {
+              path: 'incidents/:id/wall',
+              element: (
+                <RequireAuth>
+                  <WallPage />
                 </RequireAuth>
               ),
             },

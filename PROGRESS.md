@@ -3,6 +3,67 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone last.
 
+## M37 — Wall display mode — done (2026-11-15)
+
+**Done:**
+- `apps/web/src/pages/Wall.tsx` (new): read-only wall display at
+  `/incidents/:id/wall`. Core `Wall` component renders from local records:
+  rotates every N seconds (setting) through mission/direction → situation →
+  timeline → task board → map; live clock (Europe/Stockholm, 24h via Intl);
+  re-reads the local store every 30 s; large type; no write controls at all.
+  Default-export `WallPage` wrapper loads the incident context and settings
+  from the API and shows access-denied (non-member; membership is enforced
+  server-side with 403), loading and empty states.
+- `apps/web/src/pages/Map.tsx`: new `readonlyFeatures?: MapFeaturePayload[]`
+  prop — adds a read-only GeoJSON source (`stabsstod-wall-features`) with
+  geometry-type-filtered layers and severity paint. In that mode the GeoSearch
+  box, online-tile toggle and drawing tools are suppressed.
+- `apps/web/src/pages/Settings.tsx`: `wallRotateEverySeconds` form field
+  (min 5) and current-values line.
+- `apps/api/src/admin.ts`: `wallRotateEverySeconds` in the settings schema;
+  GET returns key `wall.rotateEverySeconds` (default 30); PUT upserts it.
+- `drizzle/0006_m37_wall_setting.sql` (new): idempotent seed of
+  `wall.rotateEverySeconds` = 30 (M6 pattern).
+- `apps/web/src/App.tsx`: route `incidents/:id/wall` behind `RequireAuth`.
+- `apps/web/src/locales/{sv,en}.json`: `wall.*`, `wall.section.*` and
+  `settings.wallRotateEverySeconds{,Hint}` keys per language (parity test
+  green).
+- Tests: `apps/web/src/pages/Wall.test.tsx` (new, 4 tests: first section
+  with no write controls in the DOM; rotation through all five sections
+  including the wall map source/layers assertions; access denied for
+  non-member; empty state). `apps/web/src/pages/Map.test.tsx`: FakeMap now
+  stores sources (`addSource`/`getSource`) and a new readonly-wall test.
+  `apps/api/src/admin.test.ts`: settings reset in beforeAll, GET asserts
+  default 30, PUT round-trips 45.
+- `apps/api/vitest.config.ts`: `fileParallelism: false` (see Learned).
+
+**Learned:**
+- The `pnpm -r test` flake (403/500 in sync/attachments suites) was
+  pre-existing, not M37: the api tests share one Postgres and four suites
+  (attachments, sync, export, m36) TRUNCATE shared tables in `beforeAll`, so
+  parallel file execution races the truncate. Reproduced identically on the
+  M36 state with M37 stashed. Fixed with serial file execution
+  (`fileParallelism: false`) — minimal, and it makes the recursive gate
+  deterministic (3 consecutive clean runs).
+- `??` coalesces explicit `null` too: the Wall test helper needed an
+  `=== undefined` check to pass an explicit `null` actor.
+- `import Map from './Map.tsx'` shadows the global `Map` type in
+  Map.test.tsx — the FakeMap source store is a `Record<string, …>`.
+- `// eslint-disable-next-line react-hooks/exhaustive-deps` is a lint
+  error (plugin not installed); don't add hook-disable comments.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(319 shared + 95 api + 147 web), 3 consecutive clean recursive runs.
+Docker build/smoke not required (no Docker/Caddy changes); migration is
+applied by the api at container start.
+
+**Left over (carried):** M30 feature persistence after reload e2e; M31 known
+defects (geo search sort, `markAsAffected` outbox bypass, `Stockholms län/lan`
+fixture); API tests pollute runtime DB; M18 diff labels; M19 plain conflict
+badge; M20 acknowledge. M37: wall map is read-only from the local store
+(no drawing, no search, no online toggle); rotation interval is admin
+setting `wall.rotateEverySeconds` (default 30 s, UI min 5 s).
+
 ## M36 — Wind-down and evaluation — done (2026-11-15)
 
 **Done:**
