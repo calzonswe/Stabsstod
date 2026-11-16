@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { get as httpGet } from 'node:http';
 import { readdirSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -493,6 +494,65 @@ describe('sync endpoints — plan.md §5.3', () => {
       expect(pullRes.statusCode).toBe(200);
       const found = pullRes.json().records.some((r: { id: string }) => r.id === 'rec-sse-test');
       expect(found).toBe(true);
+    });
+
+    it('broadcasts a named "records" event to subscribers after a push (plan §5.3)', async () => {
+      // inject() cannot stream SSE, so use a real socket on an ephemeral port.
+      const address = await app.listen({ port: 0 });
+      const { hostname, port } = new URL(address);
+
+      const chunks: string[] = [];
+      let statusCode: number | undefined;
+      const req = httpGet(
+        {
+          host: hostname,
+          port: Number(port),
+          path: `/api/events?incidentId=${incidentId}`,
+          headers: { cookie: `session=${userToken}` },
+        },
+        (res) => {
+          statusCode = res.statusCode;
+          res.on('data', (chunk: string) => chunks.push(chunk));
+        },
+      );
+      await new Promise<void>((resolve, reject) => {
+        req.on('response', () => resolve());
+        req.on('error', reject);
+      });
+
+      const stream = () => chunks.join('');
+      const waitFor = async (needle: string, timeoutMs: number): Promise<void> => {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+          if (stream().includes(needle)) return;
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        throw new Error(
+          `timed out waiting for ${JSON.stringify(needle)}; stream: ${stream().slice(0, 500)}`,
+        );
+      };
+
+      // The server subscribes the client synchronously before any bytes reach
+      // it, so waiting for the connection comment is race-free.
+      await waitFor(': connected', 5000);
+      expect(statusCode).toBe(200);
+
+      const r = makeRecord(incidentId, { id: 'rec-sse-named-event' });
+      const pushRes = await app.inject({
+        method: 'POST',
+        url: '/api/sync/push',
+        headers: { cookie: `session=${adminToken}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ incidentId, records: [r] }),
+      });
+      expect(pushRes.statusCode).toBe(200);
+      expect(pushRes.json().results[0].status).toBe('accepted');
+
+      // plan.md §5.3: the event is named "records" — a bare `data:` frame
+      // would arrive as the default "message" event and clients would miss it.
+      await waitFor('event: records', 5000);
+      expect(stream()).toContain('"type":"records"');
+
+      req.destroy();
     });
   });
 });

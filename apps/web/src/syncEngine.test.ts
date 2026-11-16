@@ -11,9 +11,26 @@ import type { SyncEngine as SyncEngineType } from './syncEngine.js';
 (globalThis as any).indexedDB = indexedDB;
 
 class MockEventSource {
+  static instances: MockEventSource[] = [];
   onopen: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  private handlers: Record<string, Array<() => void>> = {};
   constructor() {
+    MockEventSource.instances.push(this);
     setTimeout(() => this.onopen?.(), 0);
+  }
+  addEventListener(type: string, handler: () => void): void {
+    (this.handlers[type] ??= []).push(handler);
+  }
+  removeEventListener(type: string, handler: () => void): void {
+    this.handlers[type] = (this.handlers[type] ?? []).filter((h) => h !== handler);
+  }
+  /** Test helper: fire a named event (e.g. 'records'). */
+  emit(type: string): void {
+    for (const h of this.handlers[type] ?? []) h();
+  }
+  close(): void {
+    this.handlers = {};
   }
 }
 (globalThis as any).EventSource = MockEventSource as any;
@@ -222,6 +239,8 @@ describe('SyncEngine — status', () => {
   });
 
   afterEach(async () => {
+    await engine.settle();
+    engine.stop();
     await store.close();
   });
 
@@ -248,6 +267,7 @@ describe('SyncEngine — status', () => {
 
     await engine.start();
     await engine.syncOnce();
+    await engine.settle();
 
     const outbox = await store.getOutbox();
     expect(outbox.length).toBe(1);
@@ -269,6 +289,7 @@ describe('SyncEngine — status', () => {
     await store.addLocalRecord(record);
 
     await engine.syncOnce();
+    await engine.settle();
 
     const outbox = await store.getOutbox();
     expect(outbox.length).toBe(1);
@@ -311,6 +332,7 @@ describe('SyncEngine — status', () => {
 
     await engine.retryProblem(outbox[0].id);
     await engine.syncOnce();
+    await engine.settle();
 
     outbox = await store.getOutbox();
     expect(outbox.length).toBe(0);
@@ -353,6 +375,8 @@ describe('SyncEngine — integration', () => {
   });
 
   afterEach(async () => {
+    await engineA.settle();
+    await engineB.settle();
     engineA.stop();
     engineB.stop();
     await storeA.close();
@@ -406,4 +430,143 @@ describe('SyncEngine — integration', () => {
     await engineA.syncOnce();
     expect((await storeA.getOutbox()).length).toBe(0);
   });
+});
+
+describe('SyncEngine — same-origin baseUrl (M39)', () => {
+  let store: LocalStoreType;
+  let engine: SyncEngineType;
+
+  beforeEach(() => {
+    makeFetchStub();
+    store = new LocalStore({ userId: 'user-sameorigin' });
+    // IncidentDetail wires the engine without a baseUrl: endpoints must
+    // resolve against the page origin (constructor default is '').
+    engine = new SyncEngine(store, 'user-sameorigin', INCIDENT);
+  });
+
+  afterEach(async () => {
+    await engine.settle();
+    engine.stop();
+    await store.close();
+  });
+
+  it('pushes and pulls against same-origin endpoints with an empty baseUrl', async () => {
+    // Seed a remote record on the "server" so the pull has something to fetch.
+    const remote = makeRecord({ id: 'rec-sameorigin-remote', entityId: 'entity-remote' });
+    fakeAPI.serverSeq += 1;
+    fakeAPI.records.set(remote.id, { ...remote, serverSeq: fakeAPI.serverSeq });
+
+    const local = makeRecord({ id: 'rec-sameorigin-local' });
+    await store.addLocalRecord(local);
+
+    await engine.start();
+    await engine.syncOnce();
+    await engine.settle();
+
+    // The local record was pushed (outbox drained, no errors).
+    expect((await store.getOutbox()).length).toBe(0);
+    // The remote record was pulled into the local store.
+    const ids = (await store.getRecordsByIncident(INCIDENT)).map(
+      (r: RecordEnvelope) => r.id,
+    );
+    expect(ids).toContain('rec-sameorigin-remote');
+    // An empty baseUrl must not throw and must not look like an offline state.
+    expect(engine.getStatus().state).toBe('synced');
+  });
+});
+
+describe('SyncEngine — trigger loss (M39)', () => {
+  let store: LocalStoreType;
+  let engine: SyncEngineType;
+
+  beforeEach(() => {
+    makeFetchStub();
+    store = new LocalStore({ userId: 'user-race' });
+    engine = new SyncEngine(store, 'user-race', INCIDENT, BASE_URL);
+  });
+
+  afterEach(async () => {
+    await engine.settle();
+    engine.stop();
+    await store.close();
+  });
+
+  /**
+   * Gate the first pull behind a promise so the test can control exactly
+   * when it runs, and return a fixed empty response for it. Later pulls
+   * delegate to the real fetch stub (reading from fakeAPI).
+   */
+  function gateFirstPull() {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((res) => (release = res));
+    let pullCount = 0;
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: any, init?: any) => {
+      const url = typeof input === 'string' ? input : String(input);
+      if (url.includes('/api/sync/pull')) {
+        pullCount += 1;
+        if (pullCount === 1) {
+          await gate;
+          // At the moment this pull executes, the server has no new records.
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ records: [], nextSince: 0, hasMore: false }),
+          } as unknown as Response;
+        }
+        return realFetch(input, init);
+      }
+      return realFetch(input, init);
+    }) as typeof fetch;
+    return {
+      release,
+      pullCount: () => pullCount,
+      restore: () => {
+        globalThis.fetch = realFetch;
+      },
+    };
+  }
+
+  it('a records event arriving during an in-flight sync is not lost', async () => {
+    const gated = gateFirstPull();
+    await engine.start(); // starts sync #1 (its pull is gated) + connects SSE
+    const sse = MockEventSource.instances.at(-1)!;
+    await expect.poll(gated.pullCount).toBe(1);
+
+    // The server receives another client's record while our pull has
+    // already executed (it returned empty above).
+    const late = makeRecord({ id: 'rec-race-late', entityId: 'entity-race' });
+    fakeAPI.serverSeq += 1;
+    fakeAPI.records.set(late.id, { ...late, serverSeq: fakeAPI.serverSeq });
+
+    // Release the gated pull, then — while sync #1 is still in flight —
+    // deliver the SSE broadcast for the late record.
+    gated.release();
+    sse.emit('records');
+
+    // The engine must run a follow-up sync and pull the late record.
+    await expect.poll(async () =>
+      (await store.getRecordsByIncident(INCIDENT)).some((r) => r.id === 'rec-race-late'),
+    ).toBe(true);
+
+    gated.restore();
+  }, 10_000);
+
+  it('pulls new records when the SSE connection opens (catch-up)', async () => {
+    // The record lands on the server while our SSE connection is down, so
+    // no broadcast is delivered; only the open-time catch-up can find it.
+    const remote = makeRecord({ id: 'rec-sse-open-remote', entityId: 'entity-sse-open' });
+    fakeAPI.serverSeq += 1;
+    fakeAPI.records.set(remote.id, { ...remote, serverSeq: fakeAPI.serverSeq });
+
+    const gated = gateFirstPull();
+    await engine.start(); // sync #1 gated + SSE "opens" shortly after
+    gated.release(); // sync #1 completes with no records
+
+    await expect.poll(async () =>
+      (await store.getRecordsByIncident(INCIDENT)).some((r) => r.id === 'rec-sse-open-remote'),
+    ).toBe(true);
+
+    gated.restore();
+  }, 10_000);
 });

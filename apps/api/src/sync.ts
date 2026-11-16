@@ -59,7 +59,9 @@ function sseUnsubscribe(client: SSEClient) {
 function ssePublish(incidentId: string, data: unknown) {
   const clients = clientsByIncident.get(incidentId);
   if (!clients) return;
-  const payload = `data: ${JSON.stringify(data)}\n\n`;
+  // plan.md §5.3: named "records" event — clients subscribe to 'records',
+  // not the default "message" event.
+  const payload = `event: records\ndata: ${JSON.stringify(data)}\n\n`;
   for (const client of clients) {
     try {
       client.res.write(payload);

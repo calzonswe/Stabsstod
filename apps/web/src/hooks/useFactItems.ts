@@ -44,6 +44,10 @@ export interface UseFactItemsResult {
   createFact: (draft: FactDraft) => Promise<void>;
   changeStatus: (entityId: string, status: FactStatus) => Promise<void>;
   retractFact: (entityId: string, reason: string) => Promise<void>;
+  mergeFact: (
+    selectedHead: RecordEnvelope,
+    allHeads: RecordEnvelope[],
+  ) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -109,7 +113,13 @@ export function useFactItems(
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    if (!store) return;
+    // M39: re-query on ingestion. Local writes route through
+    // ingestRemoteRecords, so this covers server pulls too.
+    return store.subscribe(() => {
+      void refresh();
+    });
+  }, [refresh, store]);
 
   const createFact = useCallback(
     async (draft: FactDraft): Promise<void> => {
@@ -214,5 +224,48 @@ export function useFactItems(
     [store, incidentId, authorId, deviceId, refresh],
   );
 
-  return { facts, loading, error, createFact, changeStatus, retractFact, refresh };
+  // Merge (M39): a new version carrying the selected head's payload with ALL
+  // heads as parents, so materialize() collapses the conflict to one head.
+  const mergeFact = useCallback(
+    async (
+      selectedHead: RecordEnvelope,
+      allHeads: RecordEnvelope[],
+    ): Promise<void> => {
+      if (!store) return;
+      try {
+        const state = loadHlcState();
+        const { record, state: nextState } = newRecord({
+          entityId: selectedHead.entityId,
+          entityType: 'fact_item',
+          incidentId,
+          parentIds: allHeads.map((h) => h.id),
+          functionId: selectedHead.functionId,
+          authorId,
+          deviceId,
+          schemaVersion: 1,
+          payload: selectedHead.payload,
+          createdAtClient: new Date().toISOString(),
+          kind: 'put',
+          state,
+        });
+        saveHlcState(nextState, deviceId);
+        await store.addLocalRecord(record);
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'failed to merge versions');
+      }
+    },
+    [store, incidentId, authorId, deviceId, refresh],
+  );
+
+  return {
+    facts,
+    loading,
+    error,
+    createFact,
+    changeStatus,
+    retractFact,
+    mergeFact,
+    refresh,
+  };
 }

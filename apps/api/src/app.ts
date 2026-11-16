@@ -45,7 +45,7 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     "img-src 'self' blob: data:", // blob: for attachment previews (URL.createObjectURL)
     "font-src 'self'",
     "connect-src 'self'",
-    "worker-src 'self'", // service worker
+    "worker-src 'self' blob:", // service worker + maplibre's inlined tile worker (blob URL)
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'self'",

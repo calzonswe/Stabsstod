@@ -94,6 +94,7 @@ describe('security headers (M38)', () => {
     expect(csp).toContain("script-src 'self'");
     expect(csp).toContain("img-src 'self' blob: data:");
     expect(csp).toContain("connect-src 'self'");
+    expect(csp).toContain("worker-src 'self' blob:");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'self'");
     // No remote origin may appear anywhere in the policy.

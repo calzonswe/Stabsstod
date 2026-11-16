@@ -1,7 +1,79 @@
 # PROGRESS
 
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
-anything left over. Newest milestone last.
+anything left over. Newest milestone first.
+
+## M39 — Offline end-to-end scenario — done (2026-11-16)
+
+**Done:**
+- `e2e/tests/offline-scenario.test.ts` (new): the plan.md §10 M39 scenario —
+  users A and B in one incident. A offline: creates a log entry, a task and a
+  map feature, and marks the fact verified. B online: refutes the same fact
+  and creates a decision request. A reconnects: the double edit shows a
+  conflict badge, A merges (keeping the verified version), B converges.
+  Phase 7 asserts against Postgres: four fact versions in causal order
+  (v1 → v2a/v2b → merge, correct parents/statuses/authors) plus one record
+  per offline write, append-only (nothing updated or deleted). Runs on the
+  real plan §5.3 triggers (online event, SSE `records`, tab focus); the
+  focus trigger is dispatched where the test needs a sync to have happened.
+- `apps/api/src/sync.ts`: **root-cause fix** — `ssePublish` now emits the
+  named event `event: records` per plan §5.3. It previously sent a bare
+  `data:` frame, which browsers deliver as the default `message` event; the
+  client subscribes to `records`, so SSE delivery was dead for every client
+  and convergence relied on focus/online triggers — the focus sync in the
+  e2e then raced A's in-flight merge push, which is the ~50% flake.
+- `apps/api/src/sync.test.ts`: real-socket regression test pinning the wire
+  format (`app.listen({ port: 0 })` — `inject()` cannot stream SSE; waits
+  for the `: connected` comment before pushing, so the subscription cannot
+  race): after a push, subscribers get `event: records` with the payload.
+  API suite 109 → 110.
+- `apps/web/src/localStore.ts` (+ test): pub/sub on the records table
+  (`subscribe`/`notify`) — every change (local write, push result, pulled
+  batch) wakes all subscribers; Dexie version 3 adds the `outbox.status`
+  index.
+- 14 hooks (`useLogbook`, `useFactItems`, `useTasks`, `useMapFeatures`, …):
+  subscribe to the store and re-materialize on change, so boards update from
+  pulled records with no reload or manual refresh.
+- `apps/web/src/syncEngine.ts` (+ test): `pendingTrigger` follow-up (a
+  trigger during an in-flight sync schedules one more sync), `settle()` for
+  the idle state, onopen catch-up pull, `stop()` clears pending triggers.
+- `apps/web/src/pages/FactBoard.tsx` (+ test) + `ConflictBanner.tsx`:
+  conflict UI on fact cards — badge, both heads side by side, "use this
+  version" writes a merge record with all heads as parents.
+- `apps/web/src/components/MapDraw.tsx`: point placement on a single click.
+- `apps/web/src/pages/IncidentDetail.tsx`: the workspace now connects
+  LocalStore → SyncEngine for its lifetime (start on mount, stop on
+  unmount), so the plan §5.3 sync pipeline runs in the app.
+- `apps/api/src/app.ts` (+ security test): CSP `worker-src 'self' blob:`
+  (maplibre's inlined tile worker is a blob URL).
+- `e2e/tests/offline-scenario.test.ts` phase 6: waits for the fact card to
+  be visible before count assertions (a `toHaveCount(0)` could pass
+  vacuously while the board was still loading); explicit timeouts on the
+  strikethrough assertion.
+
+**Verified:** `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r test` green
+(319 shared + 110 api + 158 web). `docker compose build` + `scripts/smoke.sh`
+green. Acceptance criterion — the full e2e suite 3 runs in a row — met with
+**6 consecutive full-suite passes** (~8.7 s each, down from ~24–29 s when
+convergence was trigger-race-dependent).
+
+**Learned:**
+- The ~50% flake was a one-line server bug: SSE `data:` without
+  `event: records` → default `message` event. `MockEventSource` in the
+  client unit tests emitted `'records'` — matching the *correct* client —
+  so the mock masked the mismatch, and `inject()`-based API tests never
+  streamed SSE at all. The real-socket test now pins the wire format.
+- `toHaveCount(0)` on a locator inside a still-loading view passes
+  vacuously (no cards → count 0). Assert the fixture is visible first.
+- The stuck B view (no badge + strikethrough + verified column) was the
+  pre-merge conflict state `{v1, v2a, v2b}`, not a materialization bug:
+  `materialize`/HLC ordering verified correct (numeric HLC compare,
+  zero-padded).
+
+**Left over (carried):** M30 feature persistence after reload e2e; M31 known
+defects (geo search sort, `markAsAffected` outbox bypass, `Stockholms län/lan`
+fixture); API tests pollute runtime DB; M18 diff labels; M19 plain conflict
+badge; M20 acknowledge. M39: nothing new.
 
 ## M38 — Operations — done (2026-11-15)
 

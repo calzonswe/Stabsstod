@@ -83,9 +83,32 @@ async function loadDexie(): Promise<any> {
 export class LocalStore {
   private db: StabsStodDB | null = null;
   private readonly userId: string;
+  // Live subscribers (M39): hooks re-query the store after every ingestion.
+  private readonly listeners = new Set<() => void>();
 
   constructor(opts: LocalStoreOptions) {
     this.userId = opts.userId;
+  }
+
+  /**
+   * Subscribe to store changes. The listener is invoked (synchronously, after
+   * the data is committed) when records are ingested — both locally written
+   * records (addLocalRecord delegates to ingestRemoteRecords) and records
+   * pulled from the server. Returns an unsubscribe function.
+   */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.error('localStore listener failed', err);
+      }
+    }
   }
 
   private async ensureDb(): Promise<StabsStodDB> {
@@ -106,6 +129,12 @@ export class LocalStore {
       // v2: read/unread notification state (client-only, M34).
       dexie.version(2).stores({
         readNotifications: 'key, incidentId',
+      });
+      // v3: outbox status index. getPendingOutbox() queries where('status');
+      // in real IndexedDB that throws SchemaError without the index (the test
+      // mock Dexie does not enforce schemas, which is why it went unnoticed).
+      dexie.version(3).stores({
+        outbox: '++id, status',
       });
       this.db = {
         records: dexie.records,
@@ -144,6 +173,8 @@ export class LocalStore {
     }
 
     const db = await this.ensureDb();
+    // Note: addLocalRecord() routes through this method, so locally written
+    // records notify subscribers too — one notification path for everything.
     await db.records.bulkPut(records);
 
     const entityIds = Array.from(new Set(records.map((r) => r.entityId)));
@@ -174,6 +205,8 @@ export class LocalStore {
     );
 
     await db.entities.bulkPut(entitiesToUpsert);
+
+    this.notify();
   }
 
   async getEntity(entityId: string): Promise<MaterializedEntity | undefined> {

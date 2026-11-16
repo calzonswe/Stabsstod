@@ -11,7 +11,7 @@ import '../testMockDexie.js';
 import i18n from '../i18n.ts';
 import FactBoard from './FactBoard.tsx';
 import { LocalStore } from '../localStore.js';
-import { newRecord, materializeOne } from '@stabsstod/shared';
+import { newRecord, materializeOne, type RecordEnvelope } from '@stabsstod/shared';
 import { getDeviceId, loadHlcState, saveHlcState } from '../hlcStore.js';
 
 const INCIDENT = 'incident-m17';
@@ -211,5 +211,76 @@ describe('FactBoard (status transitions and history)', () => {
     expect(mat!.history.length).toBe(3);
     expect(mat!.heads.length).toBe(1); // linear chain → single head
     expect((mat!.current!.payload as { status: string }).status).toBe('refuted');
+  });
+
+  it('conflicting heads show a conflict badge; merging collapses them (M39)', async () => {
+    const store = makeStore('user-m17-5');
+    const entityId = 'entity-fact-conflict';
+    const heads: RecordEnvelope[] = [];
+    for (const [i, status] of (['verified', 'refuted'] as const).entries()) {
+      const state = loadHlcState();
+      const { record, state: next } = newRecord({
+        entityId,
+        entityType: 'fact_item',
+        incidentId: INCIDENT,
+        parentIds: [],
+        functionId: null,
+        authorId: `author-${i}`,
+        deviceId: `device-${i}`,
+        schemaVersion: 1,
+        payload: { text: 'Målvakten saknas', status },
+        createdAtClient: new Date().toISOString(),
+        kind: 'put',
+        state,
+      });
+      saveHlcState(next, getDeviceId());
+      await store.ingestRemoteRecords([record]);
+      heads.push(record);
+    }
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <FactBoard store={store} incidentId={INCIDENT} authorId="user-1" />
+      </I18nextProvider>,
+    );
+
+    // The card shows the conflict badge.
+    const [badge] = await screen.findAllByText('Konflikt');
+    fireEvent.click(badge);
+
+    // Banner shows both heads.
+    await waitFor(() => {
+      expect(
+        screen.getAllByText('Flera versioner finns för denna entitet').length,
+      ).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText('author-0').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('author-1').length).toBeGreaterThan(0);
+
+    // "Use this version" on the non-current head writes a merge record.
+    const [useButton] = screen.getAllByText('Använd denna version');
+    fireEvent.click(useButton);
+
+    await waitFor(async () => {
+      const records = await store.getRecordsByEntity(entityId);
+      const headIds = heads.map((h) => h.id);
+      const merge = records.find(
+        (r) =>
+          r.parentIds.length === headIds.length &&
+          r.parentIds.every((p) => headIds.includes(p)),
+      );
+      expect(merge).toBeTruthy();
+      expect(merge!.kind).toBe('put');
+    });
+
+    // The badge is gone once the conflict collapsed to a single head.
+    await waitFor(async () => {
+      const records = await store.getRecordsByEntity(entityId);
+      const mat = materializeOne(
+        records,
+        entityId,
+      );
+      expect(mat!.conflict).toBe(false);
+    });
   });
 });

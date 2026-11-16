@@ -48,6 +48,14 @@ export class SyncEngine {
   private sse: EventSource | null = null;
   private listeners = new Set<(status: SyncStatus) => void>();
   private syncPromise: Promise<void> | null = null;
+  // A trigger (SSE 'records' event, tab focus, online) arrived while a sync
+  // was in flight. That sync's pull may already have executed before the
+  // triggering records reached the server, so the trigger is not dropped:
+  // one follow-up sync runs after the in-flight sync completes.
+  private pendingTrigger = false;
+  // Waiters for settle(): resolved when no sync is in flight and no trigger
+  // is pending.
+  private settledResolvers: Array<() => void> = [];
 
   constructor(
     store: LocalStore,
@@ -91,8 +99,25 @@ export class SyncEngine {
     await this.handleOnline();
   }
 
+  /**
+   * Resolve when the engine is fully settled: no sync in flight and no
+   * pending trigger (i.e. no follow-up sync is about to start).
+   */
+  async settle(): Promise<void> {
+    if (this.syncPromise === null && !this.pendingTrigger) return;
+    await new Promise<void>((res) => this.settledResolvers.push(res));
+  }
+
+  private resolveSettled(): void {
+    if (this.syncPromise !== null || this.pendingTrigger) return;
+    const resolvers = this.settledResolvers;
+    this.settledResolvers = [];
+    for (const r of resolvers) r();
+  }
+
   stop(): void {
     this.running = false;
+    this.pendingTrigger = false;
     this.disconnectSSE();
     window.removeEventListener('online', () => this.handleOnline());
     window.removeEventListener('offline', () => this.handleOffline());
@@ -121,7 +146,14 @@ export class SyncEngine {
 
   async syncOnce(): Promise<void> {
     if (!this.running || !navigator.onLine) return;
-    if (this.syncPromise) return this.syncPromise;
+    if (this.syncPromise) {
+      // A trigger was lost if we returned here without remembering it:
+      // its pull may already have run before the triggering records were
+      // committed server-side.
+      this.pendingTrigger = true;
+      return this.syncPromise;
+    }
+    this.pendingTrigger = false;
 
     this.syncPromise = (async () => {
       try {
@@ -144,6 +176,11 @@ export class SyncEngine {
         }
       } finally {
         this.syncPromise = null;
+        if (this.pendingTrigger && this.running) {
+          this.pendingTrigger = false;
+          void this.syncOnce();
+        }
+        this.resolveSettled();
       }
     })();
 
@@ -207,7 +244,9 @@ export class SyncEngine {
     while (rounds < maxRounds) {
       rounds += 1;
 
-      const url = new URL(`${this.baseUrl}/api/sync/pull`);
+      // baseUrl may be '' (same origin, the default): resolve against the
+      // page origin so the URL is always valid.
+      const url = new URL(`${this.baseUrl}/api/sync/pull`, window.location.origin);
       url.searchParams.set('incidentId', this.incidentId);
       url.searchParams.set('since', String(since));
       url.searchParams.set('limit', '500');
@@ -236,7 +275,8 @@ export class SyncEngine {
   private connectSSE(): void {
     this.disconnectSSE();
 
-    const url = new URL(`${this.baseUrl}/api/events`);
+    // Same as pull(): baseUrl may be '' (same origin).
+    const url = new URL(`${this.baseUrl}/api/events`, window.location.origin);
     url.searchParams.set('incidentId', this.incidentId);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -252,6 +292,10 @@ export class SyncEngine {
 
     sse!.onopen = () => {
       this.backoffMs = INITIAL_BACKOFF_MS;
+      // Catch up on records broadcast while the SSE connection was down —
+      // the server does not replay missed events, so the open is the
+      // natural moment to reconcile by pull.
+      void this.syncOnce();
     };
 
     sse!.onerror = () => {

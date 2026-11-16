@@ -254,3 +254,75 @@ describe('LocalStore — read notifications', () => {
     expect(await store.getReadNotificationIds(INCIDENT)).toEqual(['a:1', 'a:2', 'a:3']);
   });
 });
+
+describe('LocalStore — subscribe (M39)', () => {
+  let store: LocalStore;
+
+  beforeEach(() => {
+    store = new LocalStore({ userId: 'user-sub' });
+  });
+
+  afterEach(async () => {
+    await store.close();
+  });
+
+  it('notifies subscribers when remote records are ingested', async () => {
+    let calls = 0;
+    const unsubscribe = store.subscribe(() => {
+      calls++;
+    });
+
+    await store.ingestRemoteRecords([makeRecord({ id: 'rec-sub-1' })]);
+    expect(calls).toBe(1);
+
+    await store.ingestRemoteRecords([
+      makeRecord({ id: 'rec-sub-2' }),
+      makeRecord({ id: 'rec-sub-3', entityId: 'entity-3' }),
+    ]);
+    expect(calls).toBe(2);
+
+    unsubscribe();
+    await store.ingestRemoteRecords([makeRecord({ id: 'rec-sub-4' })]);
+    expect(calls).toBe(2);
+  });
+
+  it('notifies subscribers when local records are written', async () => {
+    let calls = 0;
+    const unsubscribe = store.subscribe(() => {
+      calls++;
+    });
+
+    await store.addLocalRecord(makeRecord({ id: 'rec-local-1' }));
+    expect(calls).toBe(1);
+
+    unsubscribe();
+  });
+
+  it('does not notify when the ingestion batch is empty', async () => {
+    let calls = 0;
+    const unsubscribe = store.subscribe(() => {
+      calls++;
+    });
+
+    await store.ingestRemoteRecords([]);
+    expect(calls).toBe(0);
+
+    unsubscribe();
+  });
+
+  it('a throwing listener does not prevent other listeners from running', async () => {
+    let goodCalls = 0;
+    const good = store.subscribe(() => {
+      goodCalls++;
+    });
+    const bad = store.subscribe(() => {
+      throw new Error('boom');
+    });
+
+    await store.ingestRemoteRecords([makeRecord({ id: 'rec-err-1' })]);
+
+    expect(goodCalls).toBe(1);
+    bad();
+    good();
+  });
+});

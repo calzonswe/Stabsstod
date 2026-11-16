@@ -14,6 +14,7 @@ import {
   type FactItemView,
   type FactStatus,
 } from '../hooks/useFactItems.js';
+import { ConflictBanner } from '../components/ConflictBanner.js';
 
 export interface FactBoardProps {
   store: LocalStore | null;
@@ -29,7 +30,7 @@ const COLUMNS: { status: FactStatus; titleKey: string; accent: string }[] = [
 
 export default function FactBoard({ store, incidentId, authorId }: FactBoardProps) {
   const { t } = useTranslation();
-  const { facts, loading, error, createFact, changeStatus, retractFact } =
+  const { facts, loading, error, createFact, changeStatus, retractFact, mergeFact } =
     useFactItems(store, incidentId, authorId);
 
   const [showForm, setShowForm] = useState(false);
@@ -43,6 +44,7 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
   const [functionFilter, setFunctionFilter] = useState('');
   const [retractFor, setRetractFor] = useState<string | null>(null);
   const [retractReason, setRetractReason] = useState('');
+  const [conflictFor, setConflictFor] = useState<string | null>(null);
 
   const owners = useMemo(
     () => Array.from(new Set(facts.map((f) => f.lastPut?.authorId ?? ''))).filter(Boolean),
@@ -204,6 +206,23 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
         </select>
       </div>
 
+      {/* Conflict banner for the selected entity (M39) */}
+      {conflictFor &&
+        (() => {
+          const fact = facts.find((f) => f.entityId === conflictFor);
+          if (!fact || !fact.conflict) return null;
+          return (
+            <ConflictBanner
+              entityId={fact.entityId}
+              heads={fact.heads}
+              current={fact.current}
+              onMerge={(selectedHead, allHeads) =>
+                void mergeFact(selectedHead, allHeads)
+              }
+            />
+          );
+        })()}
+
       {/* Three-column board */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {COLUMNS.map((col) => {
@@ -232,6 +251,7 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
                         setRetractFor(fact.entityId);
                         setRetractReason('');
                       }}
+                      onConflict={() => setConflictFor(fact.entityId)}
                     />
                   ))
                 )}
@@ -284,11 +304,13 @@ function FactCard({
   columnStatus,
   onChangeStatus,
   onRetract,
+  onConflict,
 }: {
   fact: FactItemView;
   columnStatus: FactStatus;
   onChangeStatus: (status: FactStatus) => void;
   onRetract: () => void;
+  onConflict: () => void;
 }) {
   const { t } = useTranslation();
   const payload = fact.lastPut?.payload as
@@ -320,9 +342,12 @@ function FactCard({
           </span>
         )}
         {fact.conflict && (
-          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+          <button
+            onClick={onConflict}
+            className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200"
+          >
             {t('conflict.title')}
-          </span>
+          </button>
         )}
       </div>
       {/* Status transition actions */}

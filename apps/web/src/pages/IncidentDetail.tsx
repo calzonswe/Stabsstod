@@ -30,6 +30,7 @@ import Resources from './Resources.js';
 import Shifts from './Shifts.js';
 import { NotificationBell } from '../components/NotificationBell.js';
 import { LocalStore } from '../localStore.js';
+import { SyncEngine } from '../syncEngine.js';
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(path, { credentials: 'include', ...init });
@@ -110,6 +111,20 @@ export default function IncidentWorkspace() {
   const [localStore] = useState<LocalStore | null>(() =>
     user ? new LocalStore({ userId: user.id }) : null,
   );
+
+  // M39: connect the local store to the sync pipeline while the workspace is
+  // open — pushes the outbox, pulls new records and keeps the live SSE
+  // stream open. Triggers per plan.md §5.3: browser `online` event and tab
+  // focus, both handled inside SyncEngine.
+  const userId = user?.id;
+  useEffect(() => {
+    if (!localStore || !id || !userId) return;
+    const engine = new SyncEngine(localStore, userId, id);
+    void engine.start();
+    return () => {
+      engine.stop();
+    };
+  }, [localStore, id, userId]);
 
   useEffect(() => {
     if (id) {

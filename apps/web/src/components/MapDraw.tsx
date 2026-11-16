@@ -22,6 +22,7 @@ import {
 // terra-draw styles are bundled by Vite; no separate CSS import needed
 // in the jsdom/vitest environment (style.css isn't exported under node conditions).
 import { MapLibreAdapter, SEVERITY_PAINT, type GeoJSONFeature, type GeoJSONGeometry } from '../map/MapLibreAdapter.js';
+import type { MapMouseEvent } from 'maplibre-gl';
 import { useMapFeatures } from '../hooks/useMapFeatures.js';
 import type { LocalStore } from '../localStore.js';
 import type { MapFeaturePayload } from '@stabsstod/shared';
@@ -170,6 +171,31 @@ export default function MapDraw(props: MapDrawProps) {
       .map((fv) => payloadToFeature(fv.entityId, fv.current!.payload as MapFeaturePayload));
     adapterRef.current.setFeatures(tfFeatures);
   }, [map, features]);
+
+  // ------------------------------------------------------------------
+  // Point mode: a click on the map sets the new feature's geometry (M39).
+  // ------------------------------------------------------------------
+
+  const activeModeRef = useRef(activeMode);
+  useEffect(() => {
+    activeModeRef.current = activeMode;
+  }, [activeMode]);
+
+  useEffect(() => {
+    if (!map) return;
+    const handler = (e: MapMouseEvent) => {
+      if (activeModeRef.current !== 'point') return;
+      setEditingEntityId(null);
+      setNewFeatureGeometry({
+        type: 'Point',
+        coordinates: [e.lngLat.lng, e.lngLat.lat],
+      });
+    };
+    map.on('click', handler);
+    return () => {
+      map.off('click', handler);
+    };
+  }, [map]);
 
   // ------------------------------------------------------------------
   // Feature form actions

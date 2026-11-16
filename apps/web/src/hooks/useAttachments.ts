@@ -108,7 +108,13 @@ export function useAttachments(
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    if (!store) return;
+    // M39: re-query on ingestion. Local writes route through
+    // ingestRemoteRecords, so this covers server pulls too.
+    return store.subscribe(() => {
+      void refresh();
+    });
+  }, [refresh, store]);
 
   // ---------------------------------------------------------------------------
   // Upload pending blobs to the server (defined before addAttachment so it

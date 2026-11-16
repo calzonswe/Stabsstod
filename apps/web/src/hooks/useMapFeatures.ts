@@ -99,7 +99,13 @@ export function useMapFeatures(
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    if (!store) return;
+    // M39: re-query on ingestion. Local writes route through
+    // ingestRemoteRecords, so this covers server pulls too.
+    return store.subscribe(() => {
+      void refresh();
+    });
+  }, [refresh, store]);
 
   const createFeature = useCallback(
     async (draft: MapFeatureDraft, functionId: string | null): Promise<void> => {
