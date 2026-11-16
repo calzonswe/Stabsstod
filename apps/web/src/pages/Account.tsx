@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 const DEFAULT_TIMEZONE = 'Europe/Stockholm';
 
@@ -53,6 +55,7 @@ export default function Account() {
   const [error, setError] = useState('');
   const [acting, setActing] = useState(false);
   const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
+  const [confirmLogoutAll, setConfirmLogoutAll] = useState(false);
 
   useEffect(() => {
     // Display timezone (admin setting); fall back to Europe/Stockholm.
@@ -85,9 +88,6 @@ export default function Account() {
   }
 
   async function logoutAll() {
-    if (!window.confirm(t('account.logoutAll.confirm'))) {
-      return;
-    }
     setActing(true);
     try {
       // Ends every session of this user, including this one.
@@ -111,7 +111,11 @@ export default function Account() {
 
         {loading && <p className="mt-3 text-slate-600">{t('account.loading')}</p>}
 
-        {!loading && error && <p className="mt-3 text-red-600">{error}</p>}
+        {!loading && error && (
+          <div className="mt-3">
+            <ErrorNotice message={error} onRetry={() => void loadSessions()} />
+          </div>
+        )}
 
         {!loading && !error && sessions && sessions.length === 0 && (
           <p className="mt-3 text-slate-600">{t('account.sessions.empty')}</p>
@@ -121,9 +125,9 @@ export default function Account() {
           <table className="mt-3 w-full text-sm">
             <thead>
               <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="py-2 pr-4 font-medium">{t('account.sessions.col.device')}</th>
-                <th className="py-2 pr-4 font-medium">{t('account.sessions.col.lastSeen')}</th>
-                <th className="py-2 pr-4 font-medium">{t('account.sessions.col.expires')}</th>
+                <th scope="col" className="py-2 pr-4 font-medium">{t('account.sessions.col.device')}</th>
+                <th scope="col" className="py-2 pr-4 font-medium">{t('account.sessions.col.lastSeen')}</th>
+                <th scope="col" className="py-2 pr-4 font-medium">{t('account.sessions.col.expires')}</th>
               </tr>
             </thead>
             <tbody>
@@ -155,15 +159,39 @@ export default function Account() {
       <section className="mt-6 border border-red-200 rounded-lg p-4">
         <h2 className="font-semibold text-red-700">{t('account.logoutAll')}</h2>
         <button
-          onClick={() => {
-            void logoutAll();
-          }}
+          onClick={() => setConfirmLogoutAll(true)}
           disabled={acting || loading}
           className="mt-3 px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
         >
           {acting ? t('account.logoutAll.acting') : t('account.logoutAll.button')}
         </button>
       </section>
+
+      {confirmLogoutAll && (
+        <Dialog title={t('account.logoutAll')} onClose={() => setConfirmLogoutAll(false)}>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">{t('account.logoutAll.confirm')}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmLogoutAll(false)}
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50"
+              >
+                {t('account.logoutAll.cancel')}
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmLogoutAll(false);
+                  void logoutAll();
+                }}
+                disabled={acting}
+                className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {t('account.logoutAll.do')}
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }

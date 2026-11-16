@@ -18,6 +18,7 @@ import {
   useDirection,
   type MissionPayloadShape,
 } from '../hooks/useMissionDirection.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface MissionDirectionProps {
   store: LocalStore | null;
@@ -83,7 +84,7 @@ function MissionSection({
   canAcknowledge: boolean;
 }) {
   const { t } = useTranslation();
-  const { mission, loading, error, saveMission, acknowledge } = useMission(
+  const { mission, loading, error, saveMission, acknowledge, refresh } = useMission(
     store,
     incidentId,
     authorId,
@@ -134,11 +135,7 @@ function MissionSection({
 
   return (
     <section className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900">{t('mission.title')}</h2>
         <div className="flex gap-2">
@@ -219,6 +216,7 @@ function MissionSection({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={t('mission.form.content')}
+            aria-label={t('mission.form.content')}
             rows={2}
             required
             className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
@@ -287,7 +285,7 @@ function DirectionSection({
   canWrite: boolean;
 }) {
   const { t } = useTranslation();
-  const { direction, loading, error, saveDirection } = useDirection(
+  const { direction, loading, error, saveDirection, refresh } = useDirection(
     store,
     incidentId,
     authorId,
@@ -333,11 +331,7 @@ function DirectionSection({
 
   return (
     <section className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900">{t('direction.title')}</h2>
         {canWrite && (

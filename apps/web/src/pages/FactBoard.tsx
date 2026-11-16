@@ -15,6 +15,8 @@ import {
   type FactStatus,
 } from '../hooks/useFactItems.js';
 import { ConflictBanner } from '../components/ConflictBanner.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface FactBoardProps {
   store: LocalStore | null;
@@ -30,7 +32,7 @@ const COLUMNS: { status: FactStatus; titleKey: string; accent: string }[] = [
 
 export default function FactBoard({ store, incidentId, authorId }: FactBoardProps) {
   const { t } = useTranslation();
-  const { facts, loading, error, createFact, changeStatus, retractFact, mergeFact } =
+  const { facts, loading, error, createFact, changeStatus, retractFact, mergeFact, refresh } =
     useFactItems(store, incidentId, authorId);
 
   const [showForm, setShowForm] = useState(false);
@@ -99,11 +101,7 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
 
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold text-slate-900">{t('facts.title')}</h2>
@@ -124,6 +122,7 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={t('facts.form.text')}
+            aria-label={t('facts.form.text')}
             rows={2}
             className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             required
@@ -183,6 +182,7 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
         <select
           value={ownerFilter}
           onChange={(e) => setOwnerFilter(e.target.value)}
+          aria-label={t('facts.filter.allOwners')}
           className="px-3 py-2 border border-slate-300 rounded text-sm bg-white"
         >
           <option value="">{t('facts.filter.allOwners')}</option>
@@ -195,6 +195,7 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
         <select
           value={functionFilter}
           onChange={(e) => setFunctionFilter(e.target.value)}
+          aria-label={t('facts.filter.allFunctions')}
           className="px-3 py-2 border border-slate-300 rounded text-sm bg-white"
         >
           <option value="">{t('facts.filter.allFunctions')}</option>
@@ -263,19 +264,16 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
 
       {/* Retract dialog */}
       {retractFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setRetractFor(null)} />
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              {t('facts.retract.title')}
-            </h3>
-            <p className="text-sm text-slate-600 mb-3">{t('facts.retract.hint')}</p>
+        <Dialog title={t('facts.retract.title')} onClose={() => setRetractFor(null)}>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">{t('facts.retract.hint')}</p>
             <input
               type="text"
               value={retractReason}
               onChange={(e) => setRetractReason(e.target.value)}
               placeholder={t('facts.retract.reason')}
-              className="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-4"
+              aria-label={t('facts.retract.reason')}
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -293,7 +291,7 @@ export default function FactBoard({ store, incidentId, authorId }: FactBoardProp
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

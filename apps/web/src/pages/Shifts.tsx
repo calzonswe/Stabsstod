@@ -35,6 +35,8 @@ import {
   type ShiftView,
   type HandoverNoteView,
 } from '../hooks/useShifts.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface MemberRef {
   id: string;
@@ -116,6 +118,7 @@ export default function Shifts({
     retractShift,
     addNote,
     retractNote,
+    refresh,
   } = useShifts(store, incidentId, authorId);
 
   const canSchedule = actor
@@ -188,7 +191,7 @@ export default function Shifts({
 
   return (
     <div className="space-y-6">
-      {error && <div className="text-sm text-red-700">{error}</div>}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
 
       {/* On duty now */}
       <section
@@ -648,32 +651,35 @@ function ShiftRow({
             {t('shifts.remove')}
           </button>
           {retractOpen && (
-            <div className="p-2 bg-red-50 border border-red-200 rounded space-y-1">
-              <input
-                type="text"
-                value={retractReason}
-                onChange={(e) => setRetractReason(e.target.value)}
-                placeholder={t('shifts.retract.reason')}
-                className="w-full border border-red-300 rounded px-2 py-1 text-xs"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={!retractReason.trim()}
-                  onClick={() => void doRetract()}
-                  className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
-                >
-                  {t('shifts.retract.confirm')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRetractOpen(false)}
-                  className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
-                >
-                  {t('shifts.retract.cancel')}
-                </button>
+            <Dialog title={t('shifts.retract.title')} onClose={() => setRetractOpen(false)}>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={retractReason}
+                  onChange={(e) => setRetractReason(e.target.value)}
+                  placeholder={t('shifts.retract.reason')}
+                  aria-label={t('shifts.retract.reason')}
+                  className="w-full border border-red-300 rounded px-2 py-1 text-xs"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!retractReason.trim()}
+                    onClick={() => void doRetract()}
+                    className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
+                  >
+                    {t('shifts.retract.confirm')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetractOpen(false)}
+                    className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
+                  >
+                    {t('shifts.retract.cancel')}
+                  </button>
+                </div>
               </div>
-            </div>
+            </Dialog>
           )}
         </div>
       )}
@@ -739,32 +745,35 @@ function NoteRow({
             {t('shifts.remove')}
           </button>
           {retractOpen && (
-            <div className="p-2 bg-red-50 border border-red-200 rounded space-y-1">
-              <input
-                type="text"
-                value={retractReason}
-                onChange={(e) => setRetractReason(e.target.value)}
-                placeholder={t('shifts.retract.reason')}
-                className="w-full border border-red-300 rounded px-2 py-1 text-xs"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={!retractReason.trim()}
-                  onClick={() => void doRetract()}
-                  className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
-                >
-                  {t('shifts.retract.confirm')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRetractOpen(false)}
-                  className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
-                >
-                  {t('shifts.retract.cancel')}
-                </button>
+            <Dialog title={t('shifts.retract.title')} onClose={() => setRetractOpen(false)}>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={retractReason}
+                  onChange={(e) => setRetractReason(e.target.value)}
+                  placeholder={t('shifts.retract.reason')}
+                  aria-label={t('shifts.retract.reason')}
+                  className="w-full border border-red-300 rounded px-2 py-1 text-xs"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!retractReason.trim()}
+                    onClick={() => void doRetract()}
+                    className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
+                  >
+                    {t('shifts.retract.confirm')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetractOpen(false)}
+                    className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
+                  >
+                    {t('shifts.retract.cancel')}
+                  </button>
+                </div>
               </div>
-            </div>
+            </Dialog>
           )}
         </div>
       )}

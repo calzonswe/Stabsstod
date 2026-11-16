@@ -36,6 +36,18 @@ export function NotificationBell({
   const [now, setNow] = useState(() => Date.now());
   const [records, setRecords] = useState<RecordEnvelope[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // While the panel is open: move focus into it and close on Escape.
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
 
   // 1 s tick: the time-bound rules (overdue, briefing/shift windows) must
   // re-derive as the clock moves.
@@ -134,6 +146,7 @@ export function NotificationBell({
         type="button"
         className="relative p-1 text-slate-600 hover:text-slate-900"
         aria-label={t('notifications.title')}
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
         🔔
@@ -148,17 +161,33 @@ export function NotificationBell({
         <>
           {/* Overlay for outside clicks. */}
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-slate-200 bg-white shadow-lg">
-            <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-label={t('notifications.title')}
+            tabIndex={-1}
+            className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-slate-200 bg-white shadow-lg outline-none"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2 gap-2">
               <span className="text-sm font-medium text-slate-700">{t('notifications.title')}</span>
-              <button
-                type="button"
-                className="text-xs text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
-                disabled={unread.length === 0}
-                onClick={() => void markAllRead()}
-              >
-                {t('notifications.markAllRead')}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="text-xs text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+                  disabled={unread.length === 0}
+                  onClick={() => void markAllRead()}
+                >
+                  {t('notifications.markAllRead')}
+                </button>
+                <button
+                  type="button"
+                  className="text-slate-500 hover:text-slate-900"
+                  aria-label={t('common.close')}
+                  onClick={() => setOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             {permission === 'default' && (
               <div className="border-b border-slate-100 px-3 py-2">

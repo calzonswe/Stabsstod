@@ -11,7 +11,9 @@ import { hlcParse, type RecordEnvelope } from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 import { useLogbook, type LogEntryView } from '../hooks/useLogbook.js';
 import { ConflictBanner } from '../components/ConflictBanner.js';
+import { Dialog } from '../components/Dialog.js';
 import { EntityHistory } from '../components/EntityHistory.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface LogbookProps {
   store: LocalStore | null;
@@ -21,7 +23,7 @@ export interface LogbookProps {
 
 export default function Logbook({ store, incidentId, authorId }: LogbookProps) {
   const { t } = useTranslation();
-  const { entries, loading, error, createEntry, retractEntry, mergeEntry } =
+  const { entries, loading, error, createEntry, retractEntry, mergeEntry, refresh } =
     useLogbook(store, incidentId, authorId);
 
   const [showForm, setShowForm] = useState(false);
@@ -88,11 +90,7 @@ export default function Logbook({ store, incidentId, authorId }: LogbookProps) {
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
 
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold text-slate-900">{t('logbook.title')}</h2>
@@ -116,6 +114,7 @@ export default function Logbook({ store, incidentId, authorId }: LogbookProps) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={t('logbook.form.text')}
+            aria-label={t('logbook.form.text')}
             rows={3}
             className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             required
@@ -179,11 +178,13 @@ export default function Logbook({ store, incidentId, authorId }: LogbookProps) {
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           placeholder={t('logbook.filter.search')}
+          aria-label={t('logbook.filter.search')}
           className="flex-1 px-3 py-2 border border-slate-300 rounded text-sm bg-white"
         />
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
+          aria-label={t('logbook.filter.allCategories')}
           className="px-3 py-2 border border-slate-300 rounded text-sm bg-white"
         >
           <option value="">{t('logbook.filter.allCategories')}</option>
@@ -234,19 +235,16 @@ export default function Logbook({ store, incidentId, authorId }: LogbookProps) {
 
       {/* Retract dialog */}
       {retractFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setRetractFor(null)} />
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              {t('logbook.retract.title')}
-            </h3>
-            <p className="text-sm text-slate-600 mb-3">{t('logbook.retract.hint')}</p>
+        <Dialog title={t('logbook.retract.title')} onClose={() => setRetractFor(null)}>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">{t('logbook.retract.hint')}</p>
             <input
               type="text"
               value={retractReason}
               onChange={(e) => setRetractReason(e.target.value)}
               placeholder={t('logbook.retract.reason')}
-              className="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-4"
+              aria-label={t('logbook.retract.reason')}
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -264,7 +262,7 @@ export default function Logbook({ store, incidentId, authorId }: LogbookProps) {
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {/* History drawer */}

@@ -186,9 +186,10 @@ export function Wall({
 
   return (
     <div className="fixed inset-0 bg-slate-900 text-white overflow-hidden">
+      <h1 className="sr-only">{t('wall.title')}</h1>
       {/* Section indicator (top right, subtle) */}
       <div className="absolute top-6 right-6 flex flex-col items-center gap-2 z-10">
-        <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">
+        <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
           {t('wall.section')}
         </span>
         {WALL_SECTIONS.map((s, i) => (
@@ -321,7 +322,7 @@ function MissionDirectionView({
       )}
       {!mission?.hasMission && !direction?.hasDirection && (
         <div className="text-center py-20">
-          <p className="text-slate-500 text-xl">{t('wall.noMissionOrDirection')}</p>
+          <p className="text-slate-400 text-xl">{t('wall.noMissionOrDirection')}</p>
         </div>
       )}
     </div>
@@ -425,7 +426,7 @@ function SituationView({ data }: { data: SitrepSectionData }) {
 
       {!situation && facts.length === 0 && (
         <div className="text-center py-20">
-          <p className="text-slate-500 text-xl">{t('wall.noSituation')}</p>
+          <p className="text-slate-400 text-xl">{t('wall.noSituation')}</p>
         </div>
       )}
     </div>
@@ -478,7 +479,7 @@ function TimelineView({
         </div>
       ) : (
         <div className="text-center py-20">
-          <p className="text-slate-500 text-xl">{t('wall.noTimeline')}</p>
+          <p className="text-slate-400 text-xl">{t('wall.noTimeline')}</p>
         </div>
       )}
     </div>
@@ -524,7 +525,7 @@ function TasksView({
                     <p className="text-lg text-slate-400 mt-1">{task.description}</p>
                   )}
                   {task.assigneeUserId && (
-                    <p className="text-lg text-slate-500 mt-2">
+                    <p className="text-lg text-slate-400 mt-2">
                       {t('wall.assignee')}: {assigneeNames[task.assigneeUserId] ?? task.assigneeUserId}
                     </p>
                   )}
@@ -555,7 +556,7 @@ function TasksView({
         </div>
       ) : (
         <div className="text-center py-20">
-          <p className="text-slate-500 text-xl">{t('wall.noTasks')}</p>
+          <p className="text-slate-400 text-xl">{t('wall.noTasks')}</p>
         </div>
       )}
     </div>
@@ -563,9 +564,16 @@ function TasksView({
 }
 
 function MapView({ data }: { data: SitrepSectionData }) {
+  const { t } = useTranslation();
   return (
-    <div className="w-full h-[80vh] rounded-lg border border-slate-700 overflow-hidden">
-      <Map readonlyFeatures={data.map} />
+    <div className="w-full h-[80vh] rounded-lg border border-slate-700 overflow-hidden flex flex-col">
+      {data.map.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-slate-400 text-xl">{t('map.noFeatures')}</p>
+        </div>
+      ) : (
+        <Map readonlyFeatures={data.map} />
+      )}
     </div>
   );
 }

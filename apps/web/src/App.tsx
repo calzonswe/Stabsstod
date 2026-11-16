@@ -42,7 +42,7 @@ function Layout() {
             {t('app.name')}
           </Link>
           <div className="flex items-center gap-2">
-            <nav className="hidden md:flex items-center gap-4">
+            <nav className="hidden md:flex items-center gap-4" aria-label={t('nav.main')}>
               <Link
                 to="/"
                 className={`text-sm ${
@@ -145,8 +145,15 @@ function Home() {
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <span className="text-sm text-slate-600" role="status">
+          {t('auth.restoring')}
+        </span>
+      </div>
+    );
   }
   if (!user) {
     return <Navigate to="/login" replace />;

@@ -20,6 +20,8 @@ import {
   type ScenarioView,
 } from '../hooks/useScenarios.js';
 import { useTasks } from '../hooks/useTasks.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface ScenarioBoardProps {
   store: LocalStore | null;
@@ -35,7 +37,7 @@ export default function ScenarioBoard({
   onTaskClick,
 }: ScenarioBoardProps) {
   const { t } = useTranslation();
-  const { scenarios, loading, error, createScenario, editScenario, retractScenario } =
+  const { scenarios, loading, error, createScenario, editScenario, retractScenario, refresh } =
     useScenarios(store, incidentId, authorId);
   // Real entity link (M22): scenario taskId points to a task entity.
   const { tasks } = useTasks(store, incidentId, authorId);
@@ -152,11 +154,7 @@ export default function ScenarioBoard({
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
 
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold text-slate-900">{t('scenarios.title')}</h2>
@@ -236,22 +234,22 @@ export default function ScenarioBoard({
 
       {/* Create/edit dialog */}
       {dialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setDialog(null)} />
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white rounded-lg p-6 max-w-lg w-full shadow-xl space-y-3 relative"
-          >
-            <h3 className="text-lg font-semibold text-slate-900">
-              {dialog === 'new'
-                ? t('scenarios.createScenario')
-                : t('scenarios.editScenario')}
-            </h3>
+        <Dialog
+          title={
+            dialog === 'new'
+              ? t('scenarios.createScenario')
+              : t('scenarios.editScenario')
+          }
+          onClose={() => setDialog(null)}
+          widthClass="max-w-lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-3">
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t('scenarios.form.title')}
+              aria-label={t('scenarios.form.title')}
               required
               className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
             />
@@ -259,6 +257,7 @@ export default function ScenarioBoard({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('scenarios.form.description')}
+              aria-label={t('scenarios.form.description')}
               rows={2}
               required
               className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
@@ -267,6 +266,7 @@ export default function ScenarioBoard({
               value={implications}
               onChange={(e) => setImplications(e.target.value)}
               placeholder={t('scenarios.form.implications')}
+              aria-label={t('scenarios.form.implications')}
               rows={2}
               className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
             />
@@ -308,6 +308,7 @@ export default function ScenarioBoard({
                 value={customHorizon}
                 onChange={(e) => setCustomHorizon(e.target.value)}
                 placeholder={t('scenarios.form.customHorizon')}
+                aria-label={t('scenarios.form.customHorizon')}
                 className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
               />
             )}
@@ -358,24 +359,21 @@ export default function ScenarioBoard({
               </button>
             </div>
           </form>
-        </div>
+        </Dialog>
       )}
 
       {/* Retract dialog */}
       {retractFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setRetractFor(null)} />
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              {t('scenarios.retract.title')}
-            </h3>
-            <p className="text-sm text-slate-600 mb-3">{t('scenarios.retract.hint')}</p>
+        <Dialog title={t('scenarios.retract.title')} onClose={() => setRetractFor(null)}>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">{t('scenarios.retract.hint')}</p>
             <input
               type="text"
               value={retractReason}
               onChange={(e) => setRetractReason(e.target.value)}
               placeholder={t('scenarios.retract.reason')}
-              className="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-4"
+              aria-label={t('scenarios.retract.reason')}
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -393,7 +391,7 @@ export default function ScenarioBoard({
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

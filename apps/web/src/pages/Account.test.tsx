@@ -103,6 +103,12 @@ describe('Account (M38)', () => {
 
     fireEvent.click(button);
 
+    // Confirm in the dialog.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Logga ut alla' })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Logga ut alla' }));
+
     // The DELETE (all sessions) was sent, and the local session was cleared.
     await waitFor(() => {
       expect(localStorage.getItem('stabsstod-auth-user')).toBeNull();
@@ -115,7 +121,6 @@ describe('Account (M38)', () => {
   });
 
   it('does not log out when the confirmation is dismissed', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderAccount();
     const button = await screen.findByRole('button', { name: 'Logga ut alla enheter' });
 
@@ -124,6 +129,12 @@ describe('Account (M38)', () => {
     });
 
     fireEvent.click(button);
+
+    // Dismiss the dialog.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Stäng' })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Stäng' }));
 
     const deleteCalls = fetchMock.mock.calls.filter(
       ([url, init]) =>

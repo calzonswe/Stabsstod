@@ -29,6 +29,7 @@ import Map from './Map.js';
 import Resources from './Resources.js';
 import Shifts from './Shifts.js';
 import { NotificationBell } from '../components/NotificationBell.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 import { LocalStore } from '../localStore.js';
 import { SyncEngine } from '../syncEngine.js';
 
@@ -244,9 +245,7 @@ export default function IncidentWorkspace() {
   if (error) {
     return (
       <div className="max-w-md mx-auto py-20 text-center">
-        <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100 inline-block">
-          {error}
-        </div>
+        <ErrorNotice message={error} onRetry={() => void loadIncident()} />
       </div>
     );
   }
@@ -472,6 +471,7 @@ export default function IncidentWorkspace() {
                 <input
                   type="text"
                   defaultValue={f.name}
+                  aria-label={t('incidents.function.name', { defaultValue: 'Funktionsnamn' })}
                   onBlur={(e) => e.target.value !== f.name && renameFunction(f.id, e.target.value)}
                   className="flex-1 px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
                 />
@@ -491,22 +491,29 @@ export default function IncidentWorkspace() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+                <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                   {t('incidents.col.username')}
                 </th>
-                <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+                <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                   {t('incidents.col.displayName')}
                 </th>
-                <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+                <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                   {t('incidents.col.role')}
                 </th>
-                <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+                <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                   {t('incidents.col.functions')}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {members.map((m) => (
+              {members.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                    {t('incidents.detail.membersEmpty')}
+                  </td>
+                </tr>
+              ) : (
+                members.map((m) => (
                 <tr key={m.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm text-slate-900 font-medium">{m.username}</td>
                   <td className="px-4 py-3 text-sm text-slate-600">
@@ -521,7 +528,8 @@ export default function IncidentWorkspace() {
                     )}
                   </td>
                 </tr>
-              ))}
+              ))
+            )}
             </tbody>
           </table>
         </div>

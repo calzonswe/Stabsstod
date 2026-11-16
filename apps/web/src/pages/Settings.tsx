@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(path, { credentials: 'include', ...init });
@@ -89,16 +90,8 @@ export default function Settings() {
         <p className="text-slate-600">{t('settings.subtitle')}</p>
       </div>
 
-      {error && (
-        <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
-      {saveError && (
-        <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100">
-          {saveError}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void loadSettings()} />}
+      {saveError && <ErrorNotice message={saveError} />}
 
       <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
         <form onSubmit={handleSave} className="space-y-5">

@@ -49,6 +49,7 @@ export default function GeoSearch(props: GeoSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GeoResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [selected, setSelected] = useState<GeoResult | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,6 +58,7 @@ export default function GeoSearch(props: GeoSearchProps) {
     if (!q.trim()) {
       setResults([]);
       setSelected(null);
+      setSearchError(false);
       return;
     }
     setLoading(true);
@@ -66,13 +68,16 @@ export default function GeoSearch(props: GeoSearchProps) {
       });
       if (!res.ok) {
         setResults([]);
+        setSearchError(true);
         return;
       }
       const data = (await res.json()) as { results: GeoResult[] };
       setResults(data.results);
       setSelected(null);
+      setSearchError(false);
     } catch {
       setResults([]);
+      setSearchError(true);
     } finally {
       setLoading(false);
     }
@@ -107,7 +112,7 @@ export default function GeoSearch(props: GeoSearchProps) {
         | { type: string; coordinates: unknown }
         | undefined;
       const draft: MapFeaturePayload = {
-        label: `Berört område: ${result.name}`,
+        label: t('geo.affectedLabel', { name: result.name }),
         layer: 'situation',
         geometry: {
           type: geojson?.type === 'MultiPolygon' ? 'MultiPolygon' : 'Polygon',
@@ -115,7 +120,7 @@ export default function GeoSearch(props: GeoSearchProps) {
         },
         severity: 'warning',
         validity: 'now',
-        description: `Avgränsat område: ${result.name} (${result.kind})`,
+        description: t('geo.affectedDescription', { name: result.name, kind: result.kind }),
       };
       await fetch('/api/sync/push', {
         method: 'POST',
@@ -148,7 +153,12 @@ export default function GeoSearch(props: GeoSearchProps) {
     } catch {
       // Sync failure is surfaced elsewhere; just close the dropdown.
     }
-  }, [store, incidentId, authorId, functionId]);
+  }, [store, incidentId, authorId, functionId, t]);
+
+  const hasQuery = query.trim() !== '';
+  // Dropdown is visible once the (debounced) query settled: results,
+  // "no results", or an error.
+  const dropdownOpen = hasQuery && !loading;
 
   if (!map) return null;
 
@@ -158,56 +168,85 @@ export default function GeoSearch(props: GeoSearchProps) {
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-expanded={dropdownOpen}
+          aria-controls="geo-search-results"
+          aria-autocomplete="list"
           placeholder={t('geo.searchPlaceholder', { defaultValue: 'Sök plats eller område' })}
+          aria-label={t('geo.searchPlaceholder', { defaultValue: 'Sök plats eller område' })}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setQuery('');
+              setResults([]);
+              setSelected(null);
+              setSearchError(false);
+            }
+          }}
           className="w-full rounded border border-slate-300 px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
         />
         {loading && (
-          <span className="absolute right-3 top-2.5 text-xs text-slate-400">
+          <span className="absolute right-3 top-2.5 text-xs text-slate-500">
             {t('geo.searching', { defaultValue: 'Söker…' })}
           </span>
         )}
       </div>
-      {results.length > 0 && (
-        <div className="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-xl max-h-64 overflow-y-auto">
-          {results.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => {
-                zoomTo(r);
-                setSelected(r);
-              }}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 border-b border-slate-50/50 last:border-b-0"
-            >
-              <div className="font-medium text-slate-900">{r.name}</div>
-              <div className="text-xs text-slate-500">
-                {r.kind}
-                {r.kommun ? ` · ${r.kommun}` : ''}
-                {r.lan ? ` · ${r.lan}` : ''}
-              </div>
-            </button>
-          ))}
-          {selected && (
-            <button
-              type="button"
-              onClick={() =>
-                selected.type === 'area' && selected.geojson
-                  ? markAsAffected(selected)
-                  : null
-              }
-              disabled={selected.type !== 'area' || !selected.geojson}
-              className={`w-full text-left px-3 py-2 text-sm ${
-                selected.type !== 'area' || !selected.geojson
-                  ? 'text-slate-400 cursor-not-allowed'
-                  : 'text-indigo-600 font-medium hover:bg-indigo-50'
-              }`}
-            >
-              {selected.type !== 'area' || !selected.geojson
-                ? t('geo.noBoundary', { defaultValue: 'Ingen gräns att markera' })
-                : t('geo.markAffected', { defaultValue: 'Markera som berört område' })}
-            </button>
+      {dropdownOpen && (
+        <div
+          id="geo-search-results"
+          role="listbox"
+          className="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-xl max-h-64 overflow-y-auto"
+        >
+          {searchError ? (
+            <div className="px-3 py-2 text-sm text-red-700" role="alert">
+              {t('geo.error')}
+            </div>
+          ) : results.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-slate-500">{t('geo.noResults')}</div>
+          ) : (
+            <>
+              {results.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  role="option"
+                  aria-selected={selected?.id === r.id}
+                  onClick={() => {
+                    zoomTo(r);
+                    setSelected(r);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 border-b border-slate-50/50 last:border-b-0"
+                >
+                  <div className="font-medium text-slate-900">{r.name}</div>
+                  <div className="text-xs text-slate-500">
+                    {r.kind}
+                    {r.kommun ? ` · ${r.kommun}` : ''}
+                    {r.lan ? ` · ${r.lan}` : ''}
+                  </div>
+                </button>
+              ))}
+              {selected && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    selected.type === 'area' && selected.geojson
+                      ? markAsAffected(selected)
+                      : null
+                  }
+                  disabled={selected.type !== 'area' || !selected.geojson}
+                  className={`w-full text-left px-3 py-2 text-sm ${
+                    selected.type !== 'area' || !selected.geojson
+                      ? 'text-slate-500 cursor-not-allowed'
+                      : 'text-indigo-600 font-medium hover:bg-indigo-50'
+                  }`}
+                >
+                  {selected.type !== 'area' || !selected.geojson
+                    ? t('geo.noBoundary', { defaultValue: 'Ingen gräns att markera' })
+                    : t('geo.markAffected', { defaultValue: 'Markera som berört område' })}
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

@@ -3,6 +3,43 @@
 Milestone log per plan.md §9. One entry per milestone: what was done, what was learned,
 anything left over. Newest milestone first.
 
+## M40 — Documentation and polish — done (2026-11-16)
+
+**Done:**
+- README rewritten: install, .env, first login (bootstrap admin → forced password change),
+  create incident, add users, offline behaviour, backup/restore, air-gapped install,
+  CA trust, password policy, security headers.
+- `docs/admin.md` (CA trust, users, incidents, sync, backup, security headers).
+- `docs/user-guide-sv.md` and `docs/user-guide-en.md` (getting started, workspace tabs,
+  map/logbook, offline, PWA, language).
+- `docs/known-limitations.md` (plan §11 + carried PROGRESS leftovers).
+- Accessibility pass: `Dialog` (role=dialog, aria-modal, Escape, focus trap/restore,
+  close button aria-label) and `ErrorNotice` (role=alert, optional retry) shared
+  components; all `window.prompt`/custom overlays converted (Timeline, Logbook,
+  FactBoard, SituationEditor, ScenarioBoard, MapDraw, Attachments, NotificationBell,
+  EntityHistory); `th scope="col"` everywhere (47 added); sibling labels → `htmlFor`/`id`;
+  placeholder-only inputs → `aria-label`; App nav `aria-label`; Wall sr-only `<h1>`
+  + contrast text-slate-500→text-slate-400 (6 lines); Sitrep second `<h1>`→`<h2>`;
+  MapDraw functional layer checkboxes + severity text; GeoSearch combobox + error/no-results.
+- ErrorNotice+retry rollout to all remaining Dexie pages (Briefings, Shifts, Actors,
+  Resources, Decisions, Tasks, MissionDirection via useVersionedEntity refresh) and
+  fetch pages (Incidents, Users, Settings, Account, IncidentDetail, CreateIncident,
+  Sitrep, ClosurePlan, Evaluation, Dashboard/FunctionHome/Wall wrappers).
+- Empty states: Users table, IncidentDetail members (`incidents.detail.membersEmpty`),
+  Tasks per-column kanban (`tasks.kanbanEmpty`), Wall map panel (`map.noFeatures`).
+- Loading states: RequireAuth "Restoring your session…" indicator; Login/ChangePassword
+  in-button submitting (keys already wired).
+- New tests: Dialog (9 assertions), ErrorNotice (4), updated Account.test.tsx (Dialog
+  instead of window.confirm), EntityHistory test (close button via aria-label).
+- Web suite: 158 → 167 tests, all pass. i18n parity 853/853 keys.
+- **Verified:** `pnpm -r typecheck`/`lint`/`test` green; `docker compose build` +
+  `scripts/smoke.sh` green; E2E suite 3×3 pass; acceptance run per README
+  (clone → .env → admin login → forced password change → create user → create incident →
+  log in as user) on fresh volumes.
+- **Left over (carried):** M30 feature persistence e2e; M31 known defects (geo search sort,
+  `markAsAffected` outbox bypass, `Stockholms län/lan` fixture); API tests pollute runtime
+  DB; M18 diff labels; M19 plain conflict badge; M20 acknowledge.
+
 ## M39 — Offline end-to-end scenario — done (2026-11-16)
 
 **Done:**

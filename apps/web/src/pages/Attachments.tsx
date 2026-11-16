@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import { can, type Actor, type AttachmentPayload } from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 import { useAttachments, type AttachmentView } from '../hooks/useAttachments.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface AttachmentsProps {
   store: LocalStore | null;
@@ -50,9 +52,12 @@ export default function Attachments({
     getAttachmentBytes,
     uploadPending,
     retractAttachment,
+    refresh,
   } = useAttachments(store, incidentId, authorId);
 
   const [file, setFile] = useState<File | null>(null);
+  const [retractFor, setRetractFor] = useState<string | null>(null);
+  const [retractReason, setRetractReason] = useState('');
   const [linkedEntityIds, setLinkedEntityIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -147,21 +152,19 @@ export default function Attachments({
     [getAttachmentBytes],
   );
 
-  const handleRetract = useCallback(
-    async (entityId: string) => {
-      const reason = window.prompt(t('attachments.retract.reason'));
-      if (!reason?.trim()) return;
-      await retractAttachment(entityId, reason.trim());
-    },
-    [retractAttachment, t],
-  );
+  const handleRetract = useCallback(async () => {
+    if (!retractFor || !retractReason.trim()) return;
+    await retractAttachment(retractFor, retractReason.trim());
+    setRetractFor(null);
+    setRetractReason('');
+  }, [retractAttachment, retractFor, retractReason]);
 
   if (loading) {
     return <div className="text-center py-6 text-slate-500">{t('attachments.loading')}</div>;
   }
 
   if (error) {
-    return <div className="text-sm text-red-700">{error}</div>;
+    return <ErrorNotice message={error} onRetry={() => void refresh()} />;
   }
 
   return (
@@ -245,11 +248,11 @@ export default function Attachments({
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="text-slate-500 border-b border-slate-200">
-              <th className="text-left pb-2">{t('attachments.col.name')}</th>
-              <th className="text-left pb-2">{t('attachments.col.mime')}</th>
-              <th className="text-left pb-2">{t('attachments.col.size')}</th>
-              <th className="text-left pb-2">{t('attachments.col.status')}</th>
-              <th className="text-left pb-2">{t('attachments.col.actions')}</th>
+              <th scope="col" className="text-left pb-2">{t('attachments.col.name')}</th>
+              <th scope="col" className="text-left pb-2">{t('attachments.col.mime')}</th>
+              <th scope="col" className="text-left pb-2">{t('attachments.col.size')}</th>
+              <th scope="col" className="text-left pb-2">{t('attachments.col.status')}</th>
+              <th scope="col" className="text-left pb-2">{t('attachments.col.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -320,7 +323,10 @@ export default function Attachments({
                       {retractable && (
                         <button
                           type="button"
-                          onClick={() => void handleRetract(view.entityId)}
+                          onClick={() => {
+                            setRetractFor(view.entityId);
+                            setRetractReason('');
+                          }}
                           data-testid={`attachment-retract-${view.entityId}`}
                           className="text-xs text-red-700 border border-red-300 rounded px-2 py-0.5"
                         >
@@ -347,6 +353,37 @@ export default function Attachments({
             {t('attachments.retry')}
           </button>
         </div>
+      )}
+
+      {/* Retract dialog */}
+      {retractFor && (
+        <Dialog title={t('attachments.retract.title')} onClose={() => setRetractFor(null)}>
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={retractReason}
+              onChange={(e) => setRetractReason(e.target.value)}
+              placeholder={t('attachments.retract.reason')}
+              aria-label={t('attachments.retract.reason')}
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setRetractFor(null)}
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50"
+              >
+                {t('attachments.retract.cancel')}
+              </button>
+              <button
+                onClick={() => void handleRetract()}
+                disabled={!retractReason.trim()}
+                className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {t('attachments.retract.confirm')}
+              </button>
+            </div>
+          </div>
+        </Dialog>
       )}
     </div>
   );

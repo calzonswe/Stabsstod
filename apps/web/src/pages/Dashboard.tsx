@@ -502,13 +502,13 @@ export function Dashboard({ store, incidentId, functions, members, incident, me 
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-xs uppercase text-slate-500 border-b border-slate-200">
-                        <th className="py-2 pr-2">{t('dashboard.functions.column')}</th>
-                        <th className="py-2 pr-2">{t('dashboard.functions.lead')}</th>
-                        <th className="py-2 pr-2">{t('dashboard.functions.open')}</th>
-                        <th className="py-2 pr-2">{t('dashboard.functions.overdue')}</th>
-                        <th className="py-2 pr-2">{t('dashboard.functions.lastUpdate')}</th>
-                        <th className="py-2 pr-2">{t('dashboard.functions.challenge')}</th>
-                        <th className="py-2">{t('dashboard.functions.status')}</th>
+                        <th scope="col" className="py-2 pr-2">{t('dashboard.functions.column')}</th>
+                        <th scope="col" className="py-2 pr-2">{t('dashboard.functions.lead')}</th>
+                        <th scope="col" className="py-2 pr-2">{t('dashboard.functions.open')}</th>
+                        <th scope="col" className="py-2 pr-2">{t('dashboard.functions.overdue')}</th>
+                        <th scope="col" className="py-2 pr-2">{t('dashboard.functions.lastUpdate')}</th>
+                        <th scope="col" className="py-2 pr-2">{t('dashboard.functions.challenge')}</th>
+                        <th scope="col" className="py-2">{t('dashboard.functions.status')}</th>
                       </tr>
                     </thead>
                     <tbody>

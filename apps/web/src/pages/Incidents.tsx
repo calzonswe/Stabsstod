@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(path, { credentials: 'include', ...init });
@@ -49,9 +50,7 @@ export default function Incidents() {
   if (error) {
     return (
       <div className="max-w-md mx-auto py-20 text-center">
-        <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100 inline-block">
-          {error}
-        </div>
+        <ErrorNotice message={error} onRetry={() => void loadIncidents()} />
       </div>
     );
   }
@@ -84,32 +83,28 @@ export default function Incidents() {
         </Link>
       </div>
 
-      {error && (
-        <div className="rounded bg-red-50 p-4 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void loadIncidents()} />}
 
       <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+              <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                 {t('incidents.col.name')}
               </th>
-              <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+              <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                 {t('incidents.col.type')}
               </th>
-              <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+              <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                 {t('incidents.col.status')}
               </th>
-              <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+              <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                 {t('incidents.col.started')}
               </th>
-              <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+              <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                 {t('incidents.col.role')}
               </th>
-              <th className="px-4 py-3 text-sm font-semibold text-slate-600">
+              <th scope="col" className="px-4 py-3 text-sm font-semibold text-slate-600">
                 {t('incidents.col.actions')}
               </th>
             </tr>

@@ -20,6 +20,8 @@ import {
 } from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 import { useTimeline, type TimelineEventDraft } from '../hooks/useTimeline.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface TimelineProps {
   store: LocalStore | null;
@@ -30,11 +32,15 @@ export interface TimelineProps {
 
 export default function Timeline({ store, incidentId, authorId, actor }: TimelineProps) {
   const { t } = useTranslation();
-  const { items, manualEvents, loading, error, createEvent, retractEvent } = useTimeline(
-    store,
-    incidentId,
-    authorId,
-  );
+  const {
+    items,
+    manualEvents,
+    loading,
+    error,
+    createEvent,
+    retractEvent,
+    refresh,
+  } = useTimeline(store, incidentId, authorId);
   const [showForm, setShowForm] = useState(false);
   const [retractFor, setRetractFor] = useState<string | null>(null);
   const [retractReason, setRetractReason] = useState('');
@@ -76,11 +82,7 @@ export default function Timeline({ store, incidentId, authorId, actor }: Timelin
 
   return (
     <section className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900">{t('timeline.title')}</h2>
         {canCreate && (
@@ -111,13 +113,13 @@ export default function Timeline({ store, incidentId, authorId, actor }: Timelin
       />
 
       {retractFor && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center">
-          <div className="bg-white border border-slate-300 rounded p-4 w-96 space-y-3">
-            <div className="font-medium text-slate-900">{t('timeline.retract.title')}</div>
+        <Dialog title={t('timeline.retract.title')} onClose={() => setRetractFor(null)}>
+          <div className="space-y-3">
             <input
               value={retractReason}
               onChange={(e) => setRetractReason(e.target.value)}
               placeholder={t('timeline.retract.reason')}
+              aria-label={t('timeline.retract.reason')}
               className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
             />
             <div className="flex justify-end gap-2">
@@ -140,7 +142,7 @@ export default function Timeline({ store, incidentId, authorId, actor }: Timelin
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </section>
   );
@@ -279,6 +281,12 @@ export function TimelineView({ items, retractableIds, onRetractClick }: Timeline
       </div>
 
       <div className="text-xs text-slate-500">{t('timeline.legend')}</div>
+
+      {items.length === 0 && (
+        <div className="text-center py-8 text-slate-500 border border-dashed border-slate-200 rounded">
+          {t('timeline.empty')}
+        </div>
+      )}
 
       <div
         ref={scrollerRef}

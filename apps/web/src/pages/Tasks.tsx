@@ -24,6 +24,7 @@ import {
 } from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 import { useTasks, type TaskDraft, type TaskView } from '../hooks/useTasks.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface TasksProps {
   store: LocalStore | null;
@@ -55,7 +56,7 @@ export default function Tasks({
   functions,
 }: TasksProps) {
   const { t } = useTranslation();
-  const { tasks, loading, error, createTask, moveTask } = useTasks(
+  const { tasks, loading, error, createTask, moveTask, refresh } = useTasks(
     store,
     incidentId,
     authorId,
@@ -113,17 +114,14 @@ export default function Tasks({
 
   return (
     <section className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900">{t('tasks.title')}</h2>
         <div className="flex gap-2">
           <select
             value={functionFilter}
             onChange={(e) => setFunctionFilter(e.target.value)}
+            aria-label={t('tasks.filter.allFunctions')}
             className="px-2 py-1.5 text-sm border border-slate-300 rounded"
           >
             <option value="all">{t('tasks.filter.allFunctions')}</option>
@@ -288,23 +286,29 @@ function KanbanBoard({
           <div className="text-xs font-semibold text-slate-600 uppercase">
             {t(`tasks.kanban.${status}`)} ({groups[status].length})
           </div>
-          {payloads
-            .filter((p) => p.payload.status === status)
-            .map(({ view, payload }) => (
-              <TaskCard
-                key={view.entityId}
-                task={view}
-                functions={functions}
-                actor={actor}
-                incidentId={incidentId}
-                parentTitle={
-                  payload.parentTaskId
-                    ? ((byEntity.get(payload.parentTaskId)?.current?.payload as TaskPayload | undefined)?.title ?? null)
-                    : null
-                }
-                onMove={onMove}
-              />
-            ))}
+          {groups[status].length === 0 ? (
+            <div className="text-[10px] text-slate-400 italic">
+              {t('tasks.kanbanEmpty')}
+            </div>
+          ) : (
+            payloads
+              .filter((p) => p.payload.status === status)
+              .map(({ view, payload }) => (
+                <TaskCard
+                  key={view.entityId}
+                  task={view}
+                  functions={functions}
+                  actor={actor}
+                  incidentId={incidentId}
+                  parentTitle={
+                    payload.parentTaskId
+                      ? ((byEntity.get(payload.parentTaskId)?.current?.payload as TaskPayload | undefined)?.title ?? null)
+                      : null
+                  }
+                  onMove={onMove}
+                />
+              ))
+          )}
         </div>
       ))}
     </div>
@@ -332,11 +336,11 @@ function Stabsarbetsplan({
       <table className="w-full text-left border-collapse text-sm">
         <thead>
           <tr className="text-xs text-slate-500 uppercase border-b border-slate-200">
-            <th className="py-1 pr-2">{t('tasks.plan.task')}</th>
-            <th className="py-1 pr-2">{t('tasks.plan.assignee')}</th>
-            <th className="py-1 pr-2">{t('tasks.form.priority')}</th>
-            <th className="py-1 pr-2">{t('tasks.plan.deadline')}</th>
-            <th className="py-1">{t('tasks.plan.reportForm')}</th>
+            <th scope="col" className="py-1 pr-2">{t('tasks.plan.task')}</th>
+            <th scope="col" className="py-1 pr-2">{t('tasks.plan.assignee')}</th>
+            <th scope="col" className="py-1 pr-2">{t('tasks.form.priority')}</th>
+            <th scope="col" className="py-1 pr-2">{t('tasks.plan.deadline')}</th>
+            <th scope="col" className="py-1">{t('tasks.plan.reportForm')}</th>
           </tr>
         </thead>
         <tbody>
@@ -442,17 +446,20 @@ function TaskForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t('tasks.form.titlePlaceholder')}
+          aria-label={t('tasks.form.titlePlaceholder')}
           className="px-3 py-2 border border-slate-300 rounded text-sm"
         />
         <input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t('tasks.form.description')}
+          aria-label={t('tasks.form.description')}
           className="px-3 py-2 border border-slate-300 rounded text-sm"
         />
         <select
           value={assigneeFunctionId}
           onChange={(e) => setAssigneeFunctionId(e.target.value)}
+          aria-label={t('tasks.form.assigneeFunction')}
           className="px-2 py-2 border border-slate-300 rounded text-sm"
         >
           {functions.map((f) => (
@@ -465,18 +472,21 @@ function TaskForm({
           value={assigneeUserId}
           onChange={(e) => setAssigneeUserId(e.target.value)}
           placeholder={t('tasks.form.assignee')}
+          aria-label={t('tasks.form.assignee')}
           className="px-3 py-2 border border-slate-300 rounded text-sm"
         />
         <input
           type="datetime-local"
           value={due}
           onChange={(e) => setDue(e.target.value)}
+          aria-label={t('tasks.form.dueDate')}
           className="px-2 py-2 border border-slate-300 rounded text-sm"
         />
         <div className="grid grid-cols-2 gap-2">
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value as TaskDraft['priority'])}
+            aria-label={t('tasks.form.priority')}
             className="px-2 py-2 border border-slate-300 rounded text-sm"
           >
             {(['low', 'normal', 'high', 'critical'] as const).map((p) => (
@@ -490,6 +500,7 @@ function TaskForm({
             onChange={(e) =>
               setReportForm(e.target.value as TaskDraft['reportForm'])
             }
+            aria-label={t('tasks.form.reportForm')}
             className="px-2 py-2 border border-slate-300 rounded text-sm"
           >
             {(['oral', 'written', 'none'] as const).map((r) => (
@@ -504,6 +515,7 @@ function TaskForm({
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as TaskDraft['status'])}
+          aria-label={t('tasks.form.status')}
           className="w-full md:w-56 px-2 py-2 border border-slate-300 rounded text-sm"
         >
           {TASK_STATUS_ORDER.map((s) => (
@@ -516,6 +528,7 @@ function TaskForm({
       <select
         value={parentTaskId}
         onChange={(e) => setParentTaskId(e.target.value)}
+        aria-label={t('tasks.form.parent')}
         className="w-full md:w-72 px-2 py-2 border border-slate-300 rounded text-sm"
       >
         <option value="">

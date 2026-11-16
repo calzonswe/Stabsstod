@@ -36,6 +36,8 @@ import {
   type ReportDraft,
   type ReportView,
 } from '../hooks/useBriefings.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface BriefingsProps {
   store: LocalStore | null;
@@ -137,6 +139,7 @@ export default function Briefings({
     editBriefing,
     retractBriefing,
     saveReport,
+    refresh,
   } = useBriefings(store, incidentId, authorId);
 
   const canSchedule = actor
@@ -189,7 +192,7 @@ export default function Briefings({
 
   return (
     <div className="space-y-6">
-      {error && <div className="text-sm text-red-700">{error}</div>}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
 
       {/* Countdown to the next planned briefing. */}
       {next && (
@@ -597,35 +600,35 @@ function BriefingCard({
       </header>
 
       {retractOpen && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded space-y-2">
-          <div className="text-sm font-medium text-red-900">
-            {t('briefings.retract.reason')}
+        <Dialog title={t('briefings.retract.title')} onClose={() => setRetractOpen(false)}>
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={retractReason}
+              onChange={(e) => setRetractReason(e.target.value)}
+              placeholder={t('briefings.retract.reason')}
+              aria-label={t('briefings.retract.reason')}
+              className="w-full border border-red-300 rounded px-2 py-1 text-sm"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={!retractReason.trim()}
+                onClick={() => void doRetract()}
+                className="text-sm bg-red-700 text-white rounded px-3 py-1 disabled:opacity-50"
+              >
+                {t('briefings.retract.confirm')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRetractOpen(false)}
+                className="text-sm text-slate-600 border border-slate-300 rounded px-3 py-1"
+              >
+                {t('briefings.retract.cancel')}
+              </button>
+            </div>
           </div>
-          <input
-            type="text"
-            value={retractReason}
-            onChange={(e) => setRetractReason(e.target.value)}
-            placeholder={t('briefings.retract.reason')}
-            className="w-full border border-red-300 rounded px-2 py-1 text-sm"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={!retractReason.trim()}
-              onClick={() => void doRetract()}
-              className="text-sm bg-red-700 text-white rounded px-3 py-1 disabled:opacity-50"
-            >
-              {t('briefings.retract.confirm')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setRetractOpen(false)}
-              className="text-sm text-slate-600 border border-slate-300 rounded px-3 py-1"
-            >
-              {t('briefings.retract.cancel')}
-            </button>
-          </div>
-        </div>
+        </Dialog>
       )}
 
       {/* Agenda */}

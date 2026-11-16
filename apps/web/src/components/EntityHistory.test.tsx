@@ -93,7 +93,7 @@ describe('EntityHistory', () => {
       </I18nextProvider>,
     );
 
-    const closeBtn = container.querySelector('[data-testid="close-history"]');
+    const closeBtn = container.querySelector('button[aria-label="Stäng"]');
     expect(closeBtn).not.toBeNull();
     fireEvent.click(closeBtn!);
     expect(onClose).toHaveBeenCalledTimes(1);

@@ -59,6 +59,7 @@ function useVersionedEntity(
     build: (entityId: string, parentIds: string[], functionId: string | null) => Record<string, unknown>,
   ) => Promise<void>;
   retract: (reason: string) => Promise<void>;
+  refresh: () => Promise<void>;
 } {
   const [view, setView] = useState<VersionedEntityView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -186,7 +187,7 @@ function useVersionedEntity(
     [store, incidentId, authorId, deviceId, view, entityType, refresh],
   );
 
-  return { view, loading, error, saveVersion, retract };
+  return { view, loading, error, saveVersion, retract, refresh };
 }
 
 export function useMission(
@@ -200,8 +201,9 @@ export function useMission(
   saveMission: (payload: MissionPayloadShape) => Promise<void>;
   acknowledge: () => Promise<void>;
   retractMission: (reason: string) => Promise<void>;
+  refresh: () => Promise<void>;
 } {
-  const { view, loading, error, saveVersion, retract } = useVersionedEntity(
+  const { view, loading, error, saveVersion, retract, refresh } = useVersionedEntity(
     store,
     incidentId,
     authorId,
@@ -240,6 +242,7 @@ export function useMission(
     saveMission,
     acknowledge,
     retractMission: retract,
+    refresh,
   };
 }
 
@@ -253,8 +256,9 @@ export function useDirection(
   error: string;
   saveDirection: (payload: DirectionPayloadShape) => Promise<void>;
   retractDirection: (reason: string) => Promise<void>;
+  refresh: () => Promise<void>;
 } {
-  const { view, loading, error, saveVersion, retract } = useVersionedEntity(
+  const { view, loading, error, saveVersion, retract, refresh } = useVersionedEntity(
     store,
     incidentId,
     authorId,
@@ -272,6 +276,7 @@ export function useDirection(
   return {
     direction: view,
     loading,
+    refresh,
     error,
     saveDirection,
     retractDirection: retract,

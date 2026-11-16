@@ -21,6 +21,7 @@ import {
   type DecisionRequestStatus,
   type VersionedListEntry,
 } from '../hooks/useDecisions.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface DecisionsProps {
   store: LocalStore | null;
@@ -54,6 +55,7 @@ export default function Decisions({
     createRequest,
     withdrawRequest,
     recordDecision,
+    refresh,
   } = useDecisions(store, incidentId, authorId);
 
   const [filter, setFilter] = useState<Filter>('all');
@@ -84,11 +86,7 @@ export default function Decisions({
 
   return (
     <section className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900">{t('decisions.title')}</h2>
         {canWriteRequest && (
@@ -236,12 +234,14 @@ function RequestForm({
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         placeholder={t('decisions.form.questionPlaceholder')}
+        aria-label={t('decisions.form.questionPlaceholder')}
         className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
       />
       <textarea
         value={background}
         onChange={(e) => setBackground(e.target.value)}
         placeholder={t('decisions.form.background')}
+        aria-label={t('decisions.form.background')}
         rows={2}
         className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
       />
@@ -253,6 +253,7 @@ function RequestForm({
                 value={o.title}
                 onChange={(e) => setOption(i, { title: e.target.value })}
                 placeholder={`${t('decisions.form.options')} ${i + 1} — ${t('decisions.form.option.title')}`}
+                aria-label={`${t('decisions.form.options')} ${i + 1} — ${t('decisions.form.option.title')}`}
                 className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
               />
               {options.length > 1 && (
@@ -271,6 +272,7 @@ function RequestForm({
                 value={o.pros}
                 onChange={(e) => setOption(i, { pros: e.target.value })}
                 placeholder={t('decisions.form.option.pros')}
+                aria-label={t('decisions.form.option.pros')}
                 rows={2}
                 className="px-2 py-1 border border-slate-300 rounded text-sm"
               />
@@ -278,6 +280,7 @@ function RequestForm({
                 value={o.cons}
                 onChange={(e) => setOption(i, { cons: e.target.value })}
                 placeholder={t('decisions.form.option.cons')}
+                aria-label={t('decisions.form.option.cons')}
                 rows={2}
                 className="px-2 py-1 border border-slate-300 rounded text-sm"
               />
@@ -295,6 +298,7 @@ function RequestForm({
         value={recommendation}
         onChange={(e) => setRecommendation(e.target.value)}
         placeholder={t('decisions.form.recommendation')}
+        aria-label={t('decisions.form.recommendation')}
         className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
       />
       <div>
@@ -455,6 +459,7 @@ function RequestCard({
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={t('decisions.decision.form.text')}
+            aria-label={t('decisions.decision.form.text')}
             rows={2}
             className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
           />
@@ -462,6 +467,7 @@ function RequestCard({
             value={rationale}
             onChange={(e) => setRationale(e.target.value)}
             placeholder={t('decisions.decision.form.rationale')}
+            aria-label={t('decisions.decision.form.rationale')}
             rows={2}
             className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
           />

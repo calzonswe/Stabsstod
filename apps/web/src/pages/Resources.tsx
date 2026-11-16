@@ -26,6 +26,8 @@ import {
 } from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 import { useResources, type ResourceDraft, type ResourceView } from '../hooks/useResources.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface ResourcesProps {
   store: LocalStore | null;
@@ -65,6 +67,7 @@ export default function Resources({
     error,
     createResource,
     retractResource,
+    refresh,
   } = useResources(store, incidentId, authorId);
 
   // The record's functionId is the author's own function (chief/deputy → null).
@@ -189,13 +192,13 @@ export default function Resources({
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="text-slate-500 border-b border-slate-200">
-                <th className="text-left pb-2">{t('resources.col.name')}</th>
-                <th className="text-left pb-2">{t('resources.col.type')}</th>
-                <th className="text-left pb-2">{t('resources.col.quantity')}</th>
-                <th className="text-left pb-2">{t('resources.col.unit')}</th>
-                <th className="text-left pb-2">{t('resources.col.location')}</th>
-                <th className="text-left pb-2">{t('resources.col.status')}</th>
-                <th className="text-left pb-2">{t('resources.col.actions')}</th>
+                <th scope="col" className="text-left pb-2">{t('resources.col.name')}</th>
+                <th scope="col" className="text-left pb-2">{t('resources.col.type')}</th>
+                <th scope="col" className="text-left pb-2">{t('resources.col.quantity')}</th>
+                <th scope="col" className="text-left pb-2">{t('resources.col.unit')}</th>
+                <th scope="col" className="text-left pb-2">{t('resources.col.location')}</th>
+                <th scope="col" className="text-left pb-2">{t('resources.col.status')}</th>
+                <th scope="col" className="text-left pb-2">{t('resources.col.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -260,9 +263,9 @@ export default function Resources({
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="text-slate-500 border-b border-slate-200">
-              <th className="text-left pb-2">{t('resources.col.function')}</th>
-              <th className="text-left pb-2">{t('resources.col.members')}</th>
-              <th className="text-left pb-2">{t('resources.col.onDuty')}</th>
+              <th scope="col" className="text-left pb-2">{t('resources.col.function')}</th>
+              <th scope="col" className="text-left pb-2">{t('resources.col.members')}</th>
+              <th scope="col" className="text-left pb-2">{t('resources.col.onDuty')}</th>
             </tr>
           </thead>
           <tbody>
@@ -289,7 +292,7 @@ export default function Resources({
   }
 
   if (error) {
-    return <div className="text-sm text-red-700">{error}</div>;
+    return <ErrorNotice message={error} onRetry={() => void refresh()} />;
   }
 
   return content;
@@ -365,33 +368,36 @@ function ResourceRow({
               {t('resources.remove')}
             </button>
             {retractOpen && (
-              <div className="p-1 bg-red-50 border border-red-200 rounded space-y-1">
-                <input
-                  type="text"
-                  value={retractReason}
-                  onChange={(e) => setRetractReason(e.target.value)}
-                  placeholder={t('resources.retract.reason')}
-                  className="w-full border border-red-300 rounded px-2 py-1 text-xs"
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={!retractReason.trim()}
-                    onClick={() => void doRetract()}
-                    className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
-                    data-testid={`resource-retract-confirm-${resource.entityId}`}
-                  >
-                    {t('resources.retract.confirm')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRetractOpen(false)}
-                    className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
-                  >
-                    {t('resources.retract.cancel')}
-                  </button>
+              <Dialog title={t('resources.retract.title')} onClose={() => setRetractOpen(false)}>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={retractReason}
+                    onChange={(e) => setRetractReason(e.target.value)}
+                    placeholder={t('resources.retract.reason')}
+                    aria-label={t('resources.retract.reason')}
+                    className="w-full border border-red-300 rounded px-2 py-1 text-xs"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={!retractReason.trim()}
+                      onClick={() => void doRetract()}
+                      className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
+                      data-testid={`resource-retract-confirm-${resource.entityId}`}
+                    >
+                      {t('resources.retract.confirm')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRetractOpen(false)}
+                      className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
+                    >
+                      {t('resources.retract.cancel')}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </Dialog>
             )}
           </div>
         )}
@@ -464,12 +470,14 @@ function CreateResourceForm({ onCreated }: CreateResourceFormProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={t('resources.form.name')}
+          aria-label={t('resources.form.name')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <select
           data-testid="resource-type"
           value={type}
           onChange={(e) => setType(e.target.value as ResourcePayload['type'])}
+          aria-label={t('resources.form.type')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         >
           {RESOURCE_TYPE_ORDER.map((ty) => (
@@ -484,6 +492,7 @@ function CreateResourceForm({ onCreated }: CreateResourceFormProps) {
           value={quantity}
           onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value, 10) || 0))}
           placeholder={t('resources.form.quantity')}
+          aria-label={t('resources.form.quantity')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <input
@@ -492,6 +501,7 @@ function CreateResourceForm({ onCreated }: CreateResourceFormProps) {
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
           placeholder={t('resources.form.unit')}
+          aria-label={t('resources.form.unit')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <input
@@ -500,12 +510,14 @@ function CreateResourceForm({ onCreated }: CreateResourceFormProps) {
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder={t('resources.form.location')}
+          aria-label={t('resources.form.location')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <select
           data-testid="resource-status"
           value={status}
           onChange={(e) => setStatus(e.target.value as ResourcePayload['status'])}
+          aria-label={t('resources.form.status')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         >
           {RESOURCE_STATUS_ORDER.map((st) => (
@@ -520,6 +532,7 @@ function CreateResourceForm({ onCreated }: CreateResourceFormProps) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder={t('resources.form.notes')}
+          aria-label={t('resources.form.notes')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
       </div>

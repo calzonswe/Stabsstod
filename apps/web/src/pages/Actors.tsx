@@ -27,6 +27,8 @@ import {
 } from '@stabsstod/shared';
 import type { LocalStore } from '../localStore.js';
 import { useActors, type ActorDraft, type ActorView } from '../hooks/useActors.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface ActorsProps {
   store: LocalStore | null;
@@ -75,6 +77,7 @@ export default function Actors({
     removeRelation,
     setStatus,
     retractActor,
+    refresh,
   } = useActors(store, incidentId, authorId);
 
   const [search, setSearch] = useState('');
@@ -125,7 +128,7 @@ export default function Actors({
   }
 
   if (error) {
-    return <div className="text-sm text-red-700">{error}</div>;
+    return <ErrorNotice message={error} onRetry={() => void refresh()} />;
   }
 
   return (
@@ -142,12 +145,14 @@ export default function Actors({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('actors.filter.search')}
+          aria-label={t('actors.filter.search')}
           className="flex-1 min-w-40 border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <select
           data-testid="actor-status-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label={t('actors.filter.all')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         >
           <option value="">{t('actors.filter.all')}</option>
@@ -286,6 +291,7 @@ function CreateActorForm({ onCreated }: CreateActorFormProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={t('actors.form.name')}
+          aria-label={t('actors.form.name')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <input
@@ -294,6 +300,7 @@ function CreateActorForm({ onCreated }: CreateActorFormProps) {
           value={type}
           onChange={(e) => setType(e.target.value)}
           placeholder={t('actors.form.type')}
+          aria-label={t('actors.form.type')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <input
@@ -302,6 +309,7 @@ function CreateActorForm({ onCreated }: CreateActorFormProps) {
           value={role}
           onChange={(e) => setRole(e.target.value)}
           placeholder={t('actors.form.role')}
+          aria-label={t('actors.form.role')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <input
@@ -310,6 +318,7 @@ function CreateActorForm({ onCreated }: CreateActorFormProps) {
           value={contact}
           onChange={(e) => setContact(e.target.value)}
           placeholder={t('actors.form.contact')}
+          aria-label={t('actors.form.contact')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         />
         <select
@@ -318,6 +327,7 @@ function CreateActorForm({ onCreated }: CreateActorFormProps) {
           onChange={(e) =>
             setStatus(e.target.value as ActorPayload['status'])
           }
+          aria-label={t('actors.form.status')}
           className="border border-slate-300 rounded px-2 py-1 text-sm"
         >
           {STATUS_ORDER.map((s) => (
@@ -480,6 +490,7 @@ function ActorCard({
             data-testid={`actor-relation-target-${view.entityId}`}
             value={targetActorId}
             onChange={(e) => setTargetActorId(e.target.value)}
+            aria-label={t('actors.relation.to')}
             className="border border-slate-300 rounded px-2 py-1 text-sm"
           >
             {others.map((o) => (
@@ -494,6 +505,7 @@ function ActorCard({
             value={relationText}
             onChange={(e) => setRelationText(e.target.value)}
             placeholder={t('actors.relation.text')}
+            aria-label={t('actors.relation.text')}
             className="flex-1 min-w-24 border border-slate-300 rounded px-2 py-1 text-sm"
           />
           <button
@@ -516,32 +528,35 @@ function ActorCard({
             {t('actors.remove')}
           </button>
           {retractOpen && (
-            <div className="p-2 bg-red-50 border border-red-200 rounded space-y-1">
-              <input
-                type="text"
-                value={retractReason}
-                onChange={(e) => setRetractReason(e.target.value)}
-                placeholder={t('actors.retract.reason')}
-                className="w-full border border-red-300 rounded px-2 py-1 text-xs"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={!retractReason.trim()}
-                  onClick={() => void doRetract()}
-                  className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
-                >
-                  {t('actors.retract.confirm')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRetractOpen(false)}
-                  className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
-                >
-                  {t('actors.retract.cancel')}
-                </button>
+            <Dialog title={t('actors.retract.title')} onClose={() => setRetractOpen(false)}>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={retractReason}
+                  onChange={(e) => setRetractReason(e.target.value)}
+                  placeholder={t('actors.retract.reason')}
+                  aria-label={t('actors.retract.reason')}
+                  className="w-full border border-red-300 rounded px-2 py-1 text-xs"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!retractReason.trim()}
+                    onClick={() => void doRetract()}
+                    className="text-xs bg-red-700 text-white rounded px-2 py-0.5 disabled:opacity-50"
+                  >
+                    {t('actors.retract.confirm')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetractOpen(false)}
+                    className="text-xs text-slate-600 border border-slate-300 rounded px-2 py-0.5"
+                  >
+                    {t('actors.retract.cancel')}
+                  </button>
+                </div>
               </div>
-            </div>
+            </Dialog>
           )}
         </div>
       )}

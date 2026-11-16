@@ -14,6 +14,8 @@ import {
   useSituationSnapshots,
   type SituationSnapshotPayloadShape,
 } from '../hooks/useSituationSnapshots.js';
+import { Dialog } from '../components/Dialog.js';
+import { ErrorNotice } from '../components/ErrorNotice.js';
 
 export interface SituationEditorProps {
   store: LocalStore | null;
@@ -27,7 +29,7 @@ export default function SituationEditor({
   authorId,
 }: SituationEditorProps) {
   const { t } = useTranslation();
-  const { snapshot, loading, error, saveVersion, retractSnapshot } =
+  const { snapshot, loading, error, saveVersion, retractSnapshot, refresh } =
     useSituationSnapshots(store, incidentId, authorId);
 
   const [whatHappened, setWhatHappened] = useState('');
@@ -117,11 +119,7 @@ export default function SituationEditor({
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-100">
-          {error}
-        </div>
-      )}
+      {error && <ErrorNotice message={error} onRetry={() => void refresh()} />}
 
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold text-slate-900">{t('situation.title')}</h2>
@@ -387,18 +385,15 @@ export default function SituationEditor({
 
       {/* Retract dialog */}
       {retracting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setRetracting(false)} />
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              {t('situation.retract.title')}
-            </h3>
+        <Dialog title={t('situation.retract.title')} onClose={() => setRetracting(false)}>
+          <div className="space-y-3">
             <input
               type="text"
               value={retractReason}
               onChange={(e) => setRetractReason(e.target.value)}
               placeholder={t('situation.retract.reason')}
-              className="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-4"
+              aria-label={t('situation.retract.reason')}
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -418,7 +413,7 @@ export default function SituationEditor({
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

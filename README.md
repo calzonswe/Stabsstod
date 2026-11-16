@@ -5,27 +5,101 @@ Self-hosted, offline-first support system for an incident management staff ("sta
 The specification is [plan.md](plan.md); it is the source of truth. Progress is tracked in
 [PROGRESS.md](PROGRESS.md); open owner questions live in [QUESTIONS.md](QUESTIONS.md).
 
-Status: M38 complete — operations (backup/restore, air-gapped install, password
-policy, security headers, session management) implemented and verified.
+Status: M40 complete — documentation and polish (README, admin guide, user guides sv/en,
+known limitations, accessibility pass, empty/loading/error states, shared Dialog and
+ErrorNotice components). See [docs/](docs/).
 
 ## Run it
 
-The organisation is expected to run its own reverse proxy in front of the api
-(forwarding to `api:3000` internally, or to `127.0.0.1:3000` when run locally).
+The stack is Caddy (TLS, reverse proxy) + the Fastify API + Postgres. The web app is
+built inside the `stabsstod/api:latest` image and served by Caddy. No CDN, no external
+fonts or tiles — everything is self-hosted.
 
-1. Copy `.env.example` to `.env` and adjust values (especially passwords and
-   `SESSION_SECRET`).
-2. Start the stack: `docker compose up --build`
-3. The api is reachable at http://localhost:3000 (published on loopback only).
-4. Run the smoke test: `./scripts/smoke.sh`
+### 1. Clone and configure
 
-The api runs database migrations at start under a Postgres advisory lock, so only
-one instance migrates at a time.
+```
+git clone <repo>
+cd stabsstod
+cp .env.example .env
+```
 
-## Backup and restore
+Edit `.env` — set at minimum `ADMIN_PASSWORD` (the bootstrap admin's first password) and
+`SESSION_SECRET`. The bootstrap admin is forced to change this password at first login.
 
-Everything that is not in git lives in the `db` and `attachments` Docker
-volumes. `scripts/backup.sh` backs both up:
+### 2. Start the stack
+
+```
+docker compose up --build
+```
+
+The API is reachable at http://localhost:3000 (published on loopback only by Caddy).
+Run the smoke test:
+
+```
+./scripts/smoke.sh
+```
+
+The API runs database migrations at start under a Postgres advisory lock, so only one
+instance migrates at a time.
+
+### 3. First login
+
+1. Open http://localhost:3000 in the browser.
+2. Log in as `admin` with the `ADMIN_PASSWORD` from `.env`.
+3. You are forced to set a new password (min 12 chars, letter + digit, not the username).
+4. After the change, you land on the home page. Navigate to **Insatser** → **Skapa insats**
+   to create your first incident.
+
+### 4. Create an incident
+
+1. From **Insatser**, click **Skapa insats**.
+2. Fill in name, type, start time, and choose which functions to pre-populate.
+3. Click **Skapa insats**.
+4. You are redirected to the incident workspace (Läge / Inriktning / Samordning / Logg /
+   Karta / Stab / Rapporter).
+
+### 5. Add users (admin only)
+
+From **Inställningar** → **Användarhantering**:
+1. Click **Skapa användare**, enter username, password (policy applies), optional display
+   name and role.
+2. Click **Skapa**.
+3. From inside an incident, use **Stab → Lägg till medlem** to add users to that incident.
+
+### 6. Offline behaviour
+
+The web app is a Progressive Web App (PWA). All writes go to local Dexie (IndexedDB)
+first and sync to the server when the connection returns:
+
+- The header shows an "Offline" indicator when the browser has no network.
+- Create/edit/retract actions work offline; they are queued in the outbox.
+- When back online, pending changes are pushed automatically, and new records from other
+  devices are pulled. Conflicts (concurrent edits to the same item) show a badge and can
+  be resolved by choosing a version.
+- The service worker caches the app shell; installed on the home screen, the app opens
+  even when offline.
+
+### 7. Trust the Caddy CA (offline mode on devices)
+
+Service workers require a secure context (HTTPS). Caddy uses `tls internal`, issuing its
+own root CA. For the PWA to install and work offline on client devices, those devices
+must trust the Caddy CA:
+
+1. From a device on the same network, fetch the CA certificate from the Caddy instance
+   (the admin guide has the exact path: see [docs/admin.md](docs/admin.md)).
+2. Install it as a trusted root CA on the device.
+3. Open the app over `https://<server-hostname>/` — the service worker installs and
+   offline mode is available.
+4. An in-app diagnostic ("Offline support: active / not available — why") shows whether
+   the service worker is active.
+
+Without the CA, the app still works over plain HTTP on `localhost`, but service workers
+—and therefore offline mode—will not install.
+
+### 8. Backup and restore
+
+Everything that is not in git lives in the `db` and `attachments` Docker volumes.
+`scripts/backup.sh` backs both up:
 
 ```
 scripts/backup.sh
@@ -35,34 +109,20 @@ scripts/backup.sh
 #     manifest.txt       what was backed up, when, and from which git commit
 ```
 
-The backup is taken online through the running containers — the stack keeps
-serving during the backup. `data/backups/` is git-ignored; copy the backup
-directory off the server for real backup purposes.
+The backup is taken online through the running containers — the stack keeps serving.
 
-Restore with `scripts/restore.sh` (the newest backup is used unless you pass a
-directory):
+Restore with `scripts/restore.sh` (newest backup unless you pass a directory):
 
 ```
 scripts/restore.sh [data/backups/<YYYYMMDD-HHMMSS>]
 ```
 
-The restore is **destructive**: the current database and attachments are
-replaced by the backup. It swaps the attachments volume, stops the api, drops
-and recreates the database from the dump, starts the api (its idempotent
-migrations bring an older backup up to the current schema), and finishes by
-running the smoke test. A few seconds of downtime.
+The restore is **destructive**: the current database and attachments are replaced by the
+backup. `.env` is **not** part of the backup — keep it separately.
 
-Notes:
+### 9. Air-gapped install
 
-- `.env` is **not** part of the backup — keep it (or the values in it)
-  separately, it is the configuration.
-- The documented restore was run once during M38 and is noted in
-  [PROGRESS.md](PROGRESS.md).
-
-## Air-gapped install
-
-The stack can be installed on a machine with no internet access. On a
-connected machine:
+On a connected machine:
 
 ```
 docker compose build                  # builds stabsstod/api:latest
@@ -70,66 +130,29 @@ scripts/fetch-map.sh                  # downloads data/maps/ (a few GB)
 docker save stabsstod/api:latest postgres:16 -o stabsstod-images.tar
 ```
 
-Move to the target: the repo, `stabsstod-images.tar`, `data/maps/`, and the
-`.env` file. On the target (no internet needed):
+Move the repo, `stabsstod-images.tar`, `data/maps/`, and `.env` to the target. On the
+target (no internet needed):
 
 ```
 docker load -i stabsstod-images.tar
 docker compose up -d                  # no --build: images are already present
 ```
 
-Because the api service has an explicit `image: stabsstod/api:latest` tag in
-`docker-compose.yml`, the loaded image satisfies compose without a build. The
-map is served from `data/maps/` (see `scripts/fetch-map.sh` for what it
-contains), so the map works with no internet at all.
+### Password policy
 
-## Password policy
+Passwords must be at least 12 characters, contain at least one letter and one digit, and
+must not equal the username. Changes must also differ from the current password. Enforced
+on password change, user creation, and password reset (temporary passwords always satisfy
+the policy).
 
-Passwords must be at least 12 characters long, contain at least one letter and
-one digit, and must not be identical to the username. When changing a
-password, it must also differ from the current password. The policy is enforced
-by the API when:
+### Security headers
 
-- a user changes their password (`POST /api/auth/change-password`),
-- an admin creates a user (`POST /api/admin/users`),
-- an admin resets a password (the generated temporary password always
-  satisfies the policy).
+The API sets HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and
+a strict CSP (no remote origins) on every response.
 
-The bootstrap admin created from the `ADMIN_PASSWORD` env var on first start
-is not policy-checked at start (the env value is the organisation's choice);
-that user is forced to change the password at first login, which enforces the
-policy.
+## Documentation
 
-## Security headers
-
-The api sets these headers on every response (static assets included), verified
-by tests in M38:
-
-| Header | Value |
-| --- | --- |
-| `Strict-Transport-Security` | `max-age=31536000` |
-| `X-Content-Type-Options` | `nosniff` |
-| `Referrer-Policy` | `no-referrer` |
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'` |
-
-The organisation's reverse proxy terminates TLS in front of the api; HSTS is
-harmless over plain HTTP and takes effect once the site is served over HTTPS.
-
-## PWA and offline mode
-
-The web app is a Progressive Web App (PWA) that works offline:
-
-- The app shell and static assets are precached by a service worker
-- All data writes go to local Dexie (IndexedDB) first, then sync when online
-- When offline, the header shows an "Offline" indicator
-- When back online, pending changes are pushed to the server automatically
-
-Service workers require a secure context (HTTPS or localhost). In production, the
-organisation's reverse proxy must provide HTTPS. For local development, `localhost`
-is treated as secure by browsers.
-
-## Offline CA note
-
-If your organisation runs its own reverse proxy with HTTPS, ensure client devices
-trust the proxy's CA certificate so service workers can install and the PWA can
-work offline.
+- [docs/admin.md](docs/admin.md) — admin guide (CA, users, incidents, sync, backup)
+- [docs/user-guide-sv.md](docs/user-guide-sv.md) — användarhandbok (svenska)
+- [docs/user-guide-en.md](docs/user-guide-en.md) — user guide (English)
+- [docs/known-limitations.md](docs/known-limitations.md) — known limits and what's not in v1

@@ -203,7 +203,7 @@ export function Sitrep({ store, incidentId, authorId }: SitrepProps) {
       {/* Printable report view */}
       <div className="sitrep-report">
         <header className="mb-6 border-b border-slate-200 pb-2">
-          <h1 className="text-2xl font-bold text-slate-900">{t('sitrep.title')}</h1>
+          <h2 className="text-2xl font-bold text-slate-900">{t('sitrep.title')}</h2>
           <p className="text-sm text-slate-500">
             {t('sitrep.generated', { date: new Date().toLocaleString('sv-SE') })}
           </p>
